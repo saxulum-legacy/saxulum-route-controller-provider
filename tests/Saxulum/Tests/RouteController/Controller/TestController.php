@@ -17,18 +17,18 @@ class TestController extends AbstractController
      *      asserts={"name"="\w+"},
      *      values={"name"="world"},
      *      converters={
-     *          @Convert("name", callback=@Callback("__self__:convertName"))
+     *          @Convert("name", callback=@Callback("__self:convertName"))
      *      },
      *      method="GET",
      *      requireHttp=false,
      *      requireHttps=false,
      *      before={
-     *          @Callback("__self__:beforeFirst"),
-     *          @Callback("__self__:beforeSecond")
+     *          @Callback("__self:beforeFirst"),
+     *          @Callback("__self:beforeSecond")
      *      },
      *      after={
-     *          @Callback("__self__:afterFirst"),
-     *          @Callback("__self__:afterSecond")
+     *          @Callback("__self:afterFirst"),
+     *          @Callback("__self:afterSecond")
      *      }
      * )
      */

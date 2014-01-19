@@ -60,7 +60,7 @@ class RouteControllerManager
                     foreach ($route->getConverters() as $converter) {
                         $callback = $converter->getCallback()->getCallback();
                         if (is_string($callback) && count($callbackParts = explode(':', $callback)) == 2) {
-                            if ($callbackParts[0] == '__self__') {
+                            if ($callbackParts[0] == '__self') {
                                 $callbackParts[0] = $controllerInfo->getServiceKey();
                             }
                             $controller->convert($converter->getVariable(), function ($variable) use ($app, $callbackParts) {
@@ -80,7 +80,7 @@ class RouteControllerManager
                     foreach ($route->getBefore() as $before) {
                         $callback = $before->getCallback();
                         if (is_string($callback) && count($callbackParts = explode(':', $callback)) == 2) {
-                            if ($callbackParts[0] == '__self__') {
+                            if ($callbackParts[0] == '__self') {
                                 $callbackParts[0] = $controllerInfo->getServiceKey();
                             }
                             $controller->before(function () use ($app, $callbackParts) {
@@ -93,7 +93,7 @@ class RouteControllerManager
                     foreach ($route->getAfter() as $after) {
                         $callback = $after->getCallback();
                         if (is_string($callback) && count($callbackParts = explode(':', $callback)) == 2) {
-                            if ($callbackParts[0] == '__self__') {
+                            if ($callbackParts[0] == '__self') {
                                 $callbackParts[0] = $controllerInfo->getServiceKey();
                             }
                             $controller->after(function () use ($app, $callbackParts) {
