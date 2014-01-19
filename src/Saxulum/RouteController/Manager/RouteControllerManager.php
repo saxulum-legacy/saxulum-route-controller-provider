@@ -4,6 +4,7 @@ namespace Saxulum\RouteController\Manager;
 
 use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Common\Annotations\Reader;
+use Saxulum\RouteController\Annotation\DI;
 use Saxulum\RouteController\Annotation\Route;
 use Saxulum\RouteController\Helper\AnnotationInfo;
 use Saxulum\RouteController\Helper\ControllerInfo;
@@ -38,6 +39,42 @@ class RouteControllerManager
         foreach ($this->getControllerInfosForPaths() as $controllerInfo) {
             $app[$controllerInfo->getServiceKey()] = $app->share(function () use ($app, $controllerInfo) {
                 $controllerReflectionClass = new \ReflectionClass($controllerInfo->getNamespace());
+
+                $withDI = false;
+                if (!is_null($controllerInfo->getAnnotationInfo()->getDI())) {
+                    $withDI = true;
+                }
+                foreach ($controllerInfo->getMethodInfos() as $methodInfo) {
+                    if (!is_null($methodInfo->getAnnotationInfo()->getDI())) {
+                        $withDI = true;
+                    }
+                }
+
+                if ($withDI) {
+                    $di = $controllerInfo->getAnnotationInfo()->getDI();
+                    if (!is_null($di)) {
+                        $args = array();
+                        foreach ($di->getServiceIds() as $serviceId) {
+                            $args[] = $app[$serviceId];
+                        }
+                        $controller = $controllerReflectionClass->newInstanceArgs($args);
+                    } else {
+                        $controller = new $controllerReflectionClass;
+                    }
+
+                    foreach ($controllerInfo->getMethodInfos() as $methodInfo) {
+                        $di = $methodInfo->getAnnotationInfo()->getDI();
+                        if (!is_null($di)) {
+                            $args = array();
+                            foreach ($di->getServiceIds() as $serviceId) {
+                                $args[] = $app[$serviceId];
+                            }
+                            call_user_func_array(array($controller, $methodInfo->getName()), $args);
+                        }
+                    }
+
+                    return $controller;
+                }
 
                 return $controllerReflectionClass->newInstanceArgs(array($app));
             });
@@ -144,57 +181,87 @@ class RouteControllerManager
     }
 
     /**
-     * @param  \ReflectionClass $controllerReflection
+     * @param  \ReflectionClass $reflectionClass
      * @return ControllerInfo
      */
-    protected function getControllerInfo(\ReflectionClass $controllerReflection)
+    protected function getControllerInfo(\ReflectionClass $reflectionClass)
     {
         $methodInfos = array();
 
         $methodRouteAnnotations = array();
-        foreach ($controllerReflection->getMethods() as $reflectionMethod) {
-            if ($reflectionMethod->isPublic()) {
-                $methodAnnotations = $this
-                    ->annotationReader
-                    ->getMethodAnnotations($reflectionMethod)
-                ;
-
-                $routeAnnotation = null;
-                foreach ($methodAnnotations as $methodAnnotation) {
-                    if ($methodAnnotation instanceof Route) {
-                        $routeAnnotation = $methodAnnotation;
-                        break;
-                    }
-                }
-
-                if (!is_null($routeAnnotation)) {
-                    $methodInfos[] = new MethodInfo(
-                        $reflectionMethod->getName(),
-                        new AnnotationInfo($routeAnnotation)
-                    );
-                }
+        foreach ($reflectionClass->getMethods() as $reflectionMethod) {
+            $methodInfo = $this->getMethodInfo($reflectionMethod);
+            if (!is_null($methodInfo)) {
+                $methodInfos[] = $methodInfo;
             }
         }
 
+        return $this->getClassInfo($reflectionClass, $methodInfos);
+    }
+
+    /**
+     * @param  \ReflectionMethod $reflectionMethod
+     * @return MethodInfo
+     */
+    protected function getMethodInfo(\ReflectionMethod $reflectionMethod)
+    {
+        if ($reflectionMethod->isPublic()) {
+            $methodAnnotations = $this
+                ->annotationReader
+                ->getMethodAnnotations($reflectionMethod)
+            ;
+
+            $routeAnnotation = null;
+            $diAnnotation = null;
+
+            foreach ($methodAnnotations as $methodAnnotation) {
+                if ($methodAnnotation instanceof Route) {
+                    $routeAnnotation = $methodAnnotation;
+                } elseif ($methodAnnotation instanceof DI) {
+                    $diAnnotation = $methodAnnotation;
+                }
+            }
+
+            if (!is_null($routeAnnotation) || !is_null($diAnnotation)) {
+                return new MethodInfo(
+                    $reflectionMethod->getName(),
+                    new AnnotationInfo($routeAnnotation, $diAnnotation)
+                );
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param \ReflectionClass $reflectionClass
+     * @param $methodInfos
+     * @return ControllerInfo
+     */
+    protected function getClassInfo(\ReflectionClass $reflectionClass, $methodInfos)
+    {
         $classAnnotation = $this
             ->annotationReader
-            ->getClassAnnotations($controllerReflection)
+            ->getClassAnnotations($reflectionClass)
         ;
 
         $routeAnnotation = null;
+        $diAnnotation = null;
+
         foreach ($classAnnotation as $classAnnotation) {
             if ($classAnnotation instanceof Route) {
                 $routeAnnotation = $classAnnotation;
-                break;
+            } elseif ($classAnnotation instanceof DI) {
+                $diAnnotation = $classAnnotation;
             }
         }
 
-        $classNamespace = $controllerReflection->getName();
+        $classNamespace = $reflectionClass->getName();
 
         return new ControllerInfo(
             $classNamespace,
             $this->namespaceToServiceKey($classNamespace),
-            new AnnotationInfo($routeAnnotation),
+            new AnnotationInfo($routeAnnotation, $diAnnotation),
             $methodInfos
         );
     }
@@ -213,8 +280,8 @@ class RouteControllerManager
         }
 
         foreach (Finder::create()->files()->name('*Controller.php')->in($path) as $file) {
-            $controllerNamespaces = $this->findClasses($file);
-            foreach ($controllerNamespaces as $controllerNamespace) {
+            $controllerNamespace = $this->findClass($file);
+            if ($controllerNamespace) {
                 $reflectionClass = new \ReflectionClass($controllerNamespace);
                 if ($reflectionClass->isInstantiable()) {
                     $controllerReflections[] = $reflectionClass;
@@ -229,12 +296,40 @@ class RouteControllerManager
      * @param  SplFileInfo $file
      * @return bool|string
      */
-    protected function findClasses(SplFileInfo $file)
+    protected function findClass(SplFileInfo $file)
     {
-        $allreadyDeclaredClasses = get_declared_classes();
-        include $file->getPathname();
+        $class = false;
+        $namespace = false;
+        $tokens = token_get_all($file->getContents());
+        for ($i = 0, $count = count($tokens); $i < $count; $i++) {
+            $token = $tokens[$i];
 
-        return array_diff(get_declared_classes(), $allreadyDeclaredClasses);
+            if (!is_array($token)) {
+                continue;
+            }
+
+            if (true === $class && T_STRING === $token[0]) {
+                return $namespace.'\\'.$token[1];
+            }
+
+            if (true === $namespace && T_STRING === $token[0]) {
+                $namespace = '';
+                do {
+                    $namespace .= $token[1];
+                    $token = $tokens[++$i];
+                } while ($i < $count && is_array($token) && in_array($token[0], array(T_NS_SEPARATOR, T_STRING)));
+            }
+
+            if (T_CLASS === $token[0]) {
+                $class = true;
+            }
+
+            if (T_NAMESPACE === $token[0]) {
+                $namespace = true;
+            }
+        }
+
+        return false;
     }
 
     /**

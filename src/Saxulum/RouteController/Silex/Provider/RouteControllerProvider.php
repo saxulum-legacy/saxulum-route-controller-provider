@@ -21,13 +21,10 @@ class RouteControllerProvider implements ServiceProviderInterface
             return new AnnotationReader();
         });
 
-        $app['route_annotation_class'] = 'Symfony\\Component\\Routing\\Annotation\\Route';
-
         $app['route_controller_manager'] = $app->share(function () use ($app) {
             return new RouteControllerManager(
                 $app['route_controller_paths'],
-                $app['route_controller_annotation_reader'],
-                $app['route_annotation_class']
+                $app['route_controller_annotation_reader']
             );
         });
     }

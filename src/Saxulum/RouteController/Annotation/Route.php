@@ -91,7 +91,6 @@ class Route
     }
 
     /**
-     * @Target({"METHOD"})
      * @param string $bind
      */
     public function setBind($bind)
@@ -108,7 +107,6 @@ class Route
     }
 
     /**
-     * @Target({"METHOD"})
      * @param array $asserts
      */
     public function setAsserts(array $asserts)
@@ -125,7 +123,6 @@ class Route
     }
 
     /**
-     * @Target({"METHOD"})
      * @param array $values
      */
     public function setValues(array $values)
@@ -142,7 +139,6 @@ class Route
     }
 
     /**
-     * @Target({"METHOD"})
      * @param Convert[] $converters
      */
     public function setConverters(array $converters)
@@ -159,7 +155,6 @@ class Route
     }
 
     /**
-     * @Target({"METHOD"})
      * @param string $method
      */
     public function setMethod($method)
@@ -176,7 +171,6 @@ class Route
     }
 
     /**
-     * @Target({"METHOD"})
      * @param boolean $requireHttp
      */
     public function setRequireHttp($requireHttp)
@@ -193,7 +187,6 @@ class Route
     }
 
     /**
-     * @Target({"METHOD"})
      * @param boolean $requireHttps
      */
     public function setRequireHttps($requireHttps)
@@ -210,7 +203,6 @@ class Route
     }
 
     /**
-     * @Target({"METHOD"})
      * @param array $before
      */
     public function setBefore(array $before)
@@ -227,7 +219,6 @@ class Route
     }
 
     /**
-     * @Target({"METHOD"})
      * @param array $after
      */
     public function setAfter(array $after)

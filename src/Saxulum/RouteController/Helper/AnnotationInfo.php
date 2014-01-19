@@ -2,6 +2,7 @@
 
 namespace Saxulum\RouteController\Helper;
 
+use Saxulum\RouteController\Annotation\DI;
 use Saxulum\RouteController\Annotation\Route;
 
 class AnnotationInfo
@@ -12,11 +13,17 @@ class AnnotationInfo
     protected $route;
 
     /**
+     * @var DI
+     */
+    protected $di;
+
+    /**
      * @param Route $route
      */
-    public function __construct(Route $route = null)
+    public function __construct(Route $route = null, DI $di = null)
     {
         $this->route = $route;
+        $this->di = $di;
     }
 
     /**
@@ -25,5 +32,13 @@ class AnnotationInfo
     public function getRoute()
     {
         return $this->route;
+    }
+
+    /**
+     * @return DI
+     */
+    public function getDi()
+    {
+        return $this->di;
     }
 }

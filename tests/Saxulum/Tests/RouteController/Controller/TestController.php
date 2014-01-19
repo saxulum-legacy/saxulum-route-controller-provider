@@ -2,9 +2,9 @@
 
 namespace Saxulum\Tests\RouteController\Controller;
 
-use Saxulum\RouteController\Annotation\Route;
 use Saxulum\RouteController\Annotation\Callback;
 use Saxulum\RouteController\Annotation\Convert;
+use Saxulum\RouteController\Annotation\Route;
 
 /**
  * @Route("/{_locale}")
@@ -13,7 +13,7 @@ class TestController extends AbstractController
 {
     /**
      * @Route("/hello/{name}",
-     *      bind="hello_world",
+     *      bind="hello_name",
      *      asserts={"name"="\w+"},
      *      values={"name"="world"},
      *      converters={
@@ -32,7 +32,7 @@ class TestController extends AbstractController
      *      }
      * )
      */
-    public function testAction($name)
+    public function hellonameAction($name)
     {
         return 'hello ' . $name . '!';
     }

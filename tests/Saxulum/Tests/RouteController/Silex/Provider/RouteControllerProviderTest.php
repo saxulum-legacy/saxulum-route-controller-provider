@@ -5,11 +5,12 @@ namespace Saxulum\Tests\RouteController\Silex\Provider;
 use Saxulum\RouteController\Silex\Provider\RouteControllerProvider;
 use Silex\Application;
 use Silex\Provider\ServiceControllerServiceProvider;
+use Silex\Provider\UrlGeneratorServiceProvider;
 use Silex\WebTestCase;
 
 class RouteControllerProviderTest extends WebTestCase
 {
-    public function testController()
+    public function testHelloHansController()
     {
         $client = $this->createClient();
 
@@ -18,12 +19,22 @@ class RouteControllerProviderTest extends WebTestCase
         $this->assertEquals('hello snah!', $client->getResponse()->getContent());
     }
 
+    public function testHelloUrlController()
+    {
+        $client = $this->createClient();
+
+        $client->request('GET', '/en/hello/url');
+        $this->assertTrue($client->getResponse()->isOk());
+        $this->assertEquals('http://localhost/en/hello/urs', $client->getResponse()->getContent());
+    }
+
     public function createApplication()
     {
         $app = new Application();
         $app['debug'] = true;
 
         $app->register(new ServiceControllerServiceProvider());
+        $app->register(new UrlGeneratorServiceProvider());
         $app->register(new RouteControllerProvider());
 
         $app['route_controller_paths'] = $app->share($app->extend('route_controller_paths', function ($paths) {
