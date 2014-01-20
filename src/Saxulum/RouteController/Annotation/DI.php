@@ -9,6 +9,11 @@ namespace Saxulum\RouteController\Annotation;
 class DI
 {
     /**
+     * @var bool
+     */
+    protected $injectContainer = false;
+
+    /**
      * @var array
      */
     protected $serviceIds = array();
@@ -22,6 +27,22 @@ class DI
             }
             $this->$method($value);
         }
+    }
+
+    /**
+     * @param boolean $injectContainer
+     */
+    public function setInjectContainer($injectContainer)
+    {
+        $this->injectContainer = $injectContainer;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isInjectContainer()
+    {
+        return $this->injectContainer;
     }
 
     /**

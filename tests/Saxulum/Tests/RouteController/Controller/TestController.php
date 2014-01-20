@@ -4,10 +4,12 @@ namespace Saxulum\Tests\RouteController\Controller;
 
 use Saxulum\RouteController\Annotation\Callback;
 use Saxulum\RouteController\Annotation\Convert;
+use Saxulum\RouteController\Annotation\DI;
 use Saxulum\RouteController\Annotation\Route;
 
 /**
  * @Route("/{_locale}")
+ * @DI(injectContainer=true)
  */
 class TestController extends AbstractController
 {

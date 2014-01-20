@@ -39,32 +39,27 @@ class RouteControllerManager
         foreach ($this->getControllerInfosForPaths() as $controllerInfo) {
             $app[$controllerInfo->getServiceKey()] = $app->share(function () use ($app, $controllerInfo) {
                 $controllerReflectionClass = new \ReflectionClass($controllerInfo->getNamespace());
-
-                $withDI = false;
-                if (!is_null($controllerInfo->getAnnotationInfo()->getDI())) {
-                    $withDI = true;
-                }
-                foreach ($controllerInfo->getMethodInfos() as $methodInfo) {
-                    if (!is_null($methodInfo->getAnnotationInfo()->getDI())) {
-                        $withDI = true;
-                    }
-                }
-
-                if ($withDI) {
-                    $di = $controllerInfo->getAnnotationInfo()->getDI();
-                    if (!is_null($di)) {
+                $di = $controllerInfo->getAnnotationInfo()->getDI();
+                if (!is_null($di)) {
+                    if ($di->isInjectContainer()) {
+                        $controller = $controllerReflectionClass->newInstanceArgs(array($app));
+                    } else {
                         $args = array();
                         foreach ($di->getServiceIds() as $serviceId) {
                             $args[] = $app[$serviceId];
                         }
                         $controller = $controllerReflectionClass->newInstanceArgs($args);
-                    } else {
-                        $controller = new $controllerReflectionClass;
                     }
+                } else {
+                    $controller = new $controllerInfo->getNamespace();
+                }
 
-                    foreach ($controllerInfo->getMethodInfos() as $methodInfo) {
-                        $di = $methodInfo->getAnnotationInfo()->getDI();
-                        if (!is_null($di)) {
+                foreach ($controllerInfo->getMethodInfos() as $methodInfo) {
+                    $di = $methodInfo->getAnnotationInfo()->getDI();
+                    if (!is_null($di)) {
+                        if ($di->isInjectContainer()) {
+                            call_user_func(array($controller, $methodInfo->getName()), $app);
+                        } else {
                             $args = array();
                             foreach ($di->getServiceIds() as $serviceId) {
                                 $args[] = $app[$serviceId];
@@ -72,11 +67,9 @@ class RouteControllerManager
                             call_user_func_array(array($controller, $methodInfo->getName()), $args);
                         }
                     }
-
-                    return $controller;
                 }
 
-                return $controllerReflectionClass->newInstanceArgs(array($app));
+                return $controller;
             });
 
             /** @var ControllerCollection $controllers */
