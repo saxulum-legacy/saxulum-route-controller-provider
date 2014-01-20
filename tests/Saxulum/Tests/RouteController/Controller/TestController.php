@@ -26,11 +26,11 @@ class TestController extends AbstractController
      *      requireHttps=false,
      *      before={
      *          @Callback("__self:beforeFirst"),
-     *          @Callback("__self:beforeSecond")
+     *          @Callback("__self::beforeSecond")
      *      },
      *      after={
      *          @Callback("__self:afterFirst"),
-     *          @Callback("__self:afterSecond")
+     *          @Callback("__self::afterSecond")
      *      }
      * )
      */
@@ -55,7 +55,7 @@ class TestController extends AbstractController
 
     }
 
-    public function beforeSecond()
+    public static function beforeSecond()
     {
 
     }
@@ -65,7 +65,7 @@ class TestController extends AbstractController
 
     }
 
-    public function afterSecond()
+    public static function afterSecond()
     {
 
     }
