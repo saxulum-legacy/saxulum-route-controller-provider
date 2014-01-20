@@ -27,6 +27,10 @@ class RouteControllerManager
      */
     protected $annotationReader;
 
+    /**
+     * @param array  $paths
+     * @param Reader $annotationReader
+     */
     public function __construct(
         array $paths = array(),
         Reader $annotationReader = null
@@ -35,43 +39,13 @@ class RouteControllerManager
         $this->annotationReader = is_null($annotationReader) ? new AnnotationReader() : $annotationReader;
     }
 
+    /**
+     * @param Application $app
+     */
     public function boot(Application $app)
     {
         foreach ($this->getControllerInfosForPaths() as $controllerInfo) {
-            $app[$controllerInfo->getServiceKey()] = $app->share(function () use ($app, $controllerInfo) {
-                $controllerReflectionClass = new \ReflectionClass($controllerInfo->getNamespace());
-                $di = $controllerInfo->getAnnotationInfo()->getDI();
-                if (!is_null($di)) {
-                    if ($di->isInjectContainer()) {
-                        $controller = $controllerReflectionClass->newInstanceArgs(array($app));
-                    } else {
-                        $args = array();
-                        foreach ($di->getServiceIds() as $serviceId) {
-                            $args[] = $app[$serviceId];
-                        }
-                        $controller = $controllerReflectionClass->newInstanceArgs($args);
-                    }
-                } else {
-                    $controller = new $controllerInfo->getNamespace();
-                }
-
-                foreach ($controllerInfo->getMethodInfos() as $methodInfo) {
-                    $di = $methodInfo->getAnnotationInfo()->getDI();
-                    if (!is_null($di)) {
-                        if ($di->isInjectContainer()) {
-                            call_user_func(array($controller, $methodInfo->getName()), $app);
-                        } else {
-                            $args = array();
-                            foreach ($di->getServiceIds() as $serviceId) {
-                                $args[] = $app[$serviceId];
-                            }
-                            call_user_func_array(array($controller, $methodInfo->getName()), $args);
-                        }
-                    }
-                }
-
-                return $controller;
-            });
+            $this->addControllerService($app, $controllerInfo);
 
             /** @var ControllerCollection $controllers */
             $controllers = $app['controllers_factory'];
@@ -79,7 +53,7 @@ class RouteControllerManager
             foreach ($controllerInfo->getMethodInfos() as $methodInfo) {
                 $route = $methodInfo->getAnnotationInfo()->getRoute();
                 if (!is_null($route)) {
-                    $to = $controllerInfo->getServiceKey() . ':' . $methodInfo->getName();
+                    $to = $controllerInfo->getserviceId() . ':' . $methodInfo->getName();
                     $controller = $controllers->match($route->getMatch(), $to);
                     $controller->bind($route->getBind());
                     foreach ($route->getAsserts() as $variable => $regexp) {
@@ -89,17 +63,14 @@ class RouteControllerManager
                         $controller->value($variable, $default);
                     }
                     foreach ($route->getConverters() as $converter) {
-                        $callback = $converter->getCallback()->getCallback();
-                        if (is_string($callback) && count($callbackParts = explode(':', $callback)) == 2) {
-                            if ($callbackParts[0] == '__self') {
-                                $callbackParts[0] = $controllerInfo->getServiceKey();
-                            }
-                            $controller->convert($converter->getVariable(), function ($variable) use ($app, $callbackParts) {
-                                return $app[$callbackParts[0]]->$callbackParts[1]($variable);
-                            });
-                        } else {
-                            $controller->convert($converter->getVariable(), $callback);
-                        }
+                        $controller->convert(
+                            $converter->getVariable(),
+                            $this->fixCallback(
+                                $app,
+                                $controllerInfo,
+                                $converter->getCallback()->getCallback()
+                            )
+                        );
                     }
                     $controller->method($route->getMethod());
                     if ($route->isRequireHttp()) {
@@ -109,30 +80,14 @@ class RouteControllerManager
                         $controller->requireHttps();
                     }
                     foreach ($route->getBefore() as $before) {
-                        $callback = $before->getCallback();
-                        if (is_string($callback) && count($callbackParts = explode(':', $callback)) == 2) {
-                            if ($callbackParts[0] == '__self') {
-                                $callbackParts[0] = $controllerInfo->getServiceKey();
-                            }
-                            $controller->before(function () use ($app, $callbackParts) {
-                                return $app[$callbackParts[0]]->$callbackParts[1]();
-                            });
-                        } else {
-                            $controller->before($callback);
-                        }
+                        $controller->before(
+                            $this->fixCallback($app, $controllerInfo, $before->getCallback())
+                        );
                     }
                     foreach ($route->getAfter() as $after) {
-                        $callback = $after->getCallback();
-                        if (is_string($callback) && count($callbackParts = explode(':', $callback)) == 2) {
-                            if ($callbackParts[0] == '__self') {
-                                $callbackParts[0] = $controllerInfo->getServiceKey();
-                            }
-                            $controller->after(function () use ($app, $callbackParts) {
-                                return $app[$callbackParts[0]]->$callbackParts[1]();
-                            });
-                        } else {
-                            $controller->after($callback);
-                        }
+                        $controller->after(
+                            $this->fixCallback($app, $controllerInfo, $after->getCallback())
+                        );
                     }
                 }
             }
@@ -145,6 +100,48 @@ class RouteControllerManager
 
             $app->mount($prefix, $controllers);
         }
+    }
+
+    /**
+     * @param Application    $app
+     * @param ControllerInfo $controllerInfo
+     */
+    protected function addControllerService(Application $app, ControllerInfo $controllerInfo)
+    {
+        $app[$controllerInfo->getserviceId()] = $app->share(function () use ($app, $controllerInfo) {
+            $controllerReflectionClass = new \ReflectionClass($controllerInfo->getNamespace());
+            $di = $controllerInfo->getAnnotationInfo()->getDI();
+            if (!is_null($di)) {
+                if ($di->isInjectContainer()) {
+                    $controller = $controllerReflectionClass->newInstanceArgs(array($app));
+                } else {
+                    $args = array();
+                    foreach ($di->getServiceIds() as $serviceId) {
+                        $args[] = $app[$serviceId];
+                    }
+                    $controller = $controllerReflectionClass->newInstanceArgs($args);
+                }
+            } else {
+                $controller = new $controllerInfo->getNamespace();
+            }
+
+            foreach ($controllerInfo->getMethodInfos() as $methodInfo) {
+                $di = $methodInfo->getAnnotationInfo()->getDI();
+                if (!is_null($di)) {
+                    if ($di->isInjectContainer()) {
+                        call_user_func(array($controller, $methodInfo->getName()), $app);
+                    } else {
+                        $args = array();
+                        foreach ($di->getServiceIds() as $serviceId) {
+                            $args[] = $app[$serviceId];
+                        }
+                        call_user_func_array(array($controller, $methodInfo->getName()), $args);
+                    }
+                }
+            }
+
+            return $controller;
+        });
     }
 
     /**
@@ -254,7 +251,7 @@ class RouteControllerManager
 
         return new ControllerInfo(
             $classNamespace,
-            $this->namespaceToServiceKey($classNamespace),
+            $this->namespaceToserviceId($classNamespace),
             new AnnotationInfo($routeAnnotation, $diAnnotation),
             $methodInfos
         );
@@ -299,8 +296,46 @@ class RouteControllerManager
      * @param  string $namespace
      * @return string
      */
-    protected function namespaceToServiceKey($namespace)
+    protected function namespaceToserviceId($namespace)
     {
         return str_replace('\\', '.', strtolower($namespace));
+    }
+
+    /**
+     * @param Application    $app
+     * @param ControllerInfo $controllerInfo
+     * @param $callback
+     * @return callable|string
+     */
+    protected function fixCallback(Application $app, ControllerInfo $controllerInfo, $callback)
+    {
+        if (is_string($callback)) {
+            $matches = array();
+
+            // controller as service callback
+            if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
+                if ($matches[1] == '__self') {
+                    $matches[1] = $controllerInfo->getserviceId();
+                }
+
+                return function () use ($app, $matches) {
+                    return call_user_func_array(
+                        array($app[$matches[1]], $matches[2]),
+                        func_get_args()
+                    );
+                };
+            }
+
+            // static class call
+            if (preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
+                if ($matches[1] == '__self') {
+                    $matches[1] = $controllerInfo->getNamespace();
+                }
+
+                return $matches[1] . '::' . $matches[2];
+            }
+        }
+
+        return $callback;
     }
 }

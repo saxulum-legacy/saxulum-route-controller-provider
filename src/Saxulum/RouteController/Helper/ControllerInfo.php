@@ -12,7 +12,7 @@ class ControllerInfo
     /**
      * @var string
      */
-    protected $serviceKey;
+    protected $serviceId;
 
     /**
      * @var AnnotationInfo
@@ -24,10 +24,10 @@ class ControllerInfo
      */
     protected $methodInfos;
 
-    public function __construct($namespace, $serviceKey, AnnotationInfo $annotationInfo, array $methodInfos = array())
+    public function __construct($namespace, $serviceId, AnnotationInfo $annotationInfo, array $methodInfos = array())
     {
         $this->namespace = $namespace;
-        $this->serviceKey = $serviceKey;
+        $this->serviceId = $serviceId;
         $this->annotationInfo = $annotationInfo;
         $this->methodInfos = $methodInfos;
     }
@@ -43,9 +43,9 @@ class ControllerInfo
     /**
      * @return string
      */
-    public function getServiceKey()
+    public function getserviceId()
     {
-        return $this->serviceKey;
+        return $this->serviceId;
     }
 
     /**
