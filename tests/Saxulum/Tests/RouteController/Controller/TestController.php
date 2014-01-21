@@ -6,6 +6,8 @@ use Saxulum\RouteController\Annotation\Callback;
 use Saxulum\RouteController\Annotation\Convert;
 use Saxulum\RouteController\Annotation\DI;
 use Saxulum\RouteController\Annotation\Route;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @Route("/{_locale}")
@@ -50,22 +52,22 @@ class TestController extends AbstractController
         return $newName;
     }
 
-    public function beforeFirst()
+    public function beforeFirst(Request $request)
     {
 
     }
 
-    public static function beforeSecond()
+    public static function beforeSecond(Request $request)
     {
 
     }
 
-    public function afterFirst()
+    public function afterFirst(Request $request, Response $response)
     {
 
     }
 
-    public static function afterSecond()
+    public static function afterSecond(Request $request, Response $response)
     {
 
     }
