@@ -5,7 +5,7 @@ namespace Saxulum\RouteController\Helper;
 use Saxulum\RouteController\Annotation\DI;
 use Saxulum\RouteController\Annotation\Route;
 
-class AnnotationInfo
+class AnnotationInfo implements SetStateInterface
 {
     /**
      * @var Route
@@ -24,6 +24,17 @@ class AnnotationInfo
     {
         $this->route = $route;
         $this->di = $di;
+    }
+
+    /**
+     * @param array $array
+     * @return $this
+     */
+    public static function __set_state(array $array)
+    {
+        $reflectionClass = new \ReflectionClass(__CLASS__);
+
+        return $reflectionClass->newInstanceArgs($array);
     }
 
     /**

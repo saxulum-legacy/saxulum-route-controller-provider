@@ -2,7 +2,7 @@
 
 namespace Saxulum\RouteController\Helper;
 
-class MethodInfo
+class MethodInfo implements SetStateInterface
 {
     /**
      * @var string
@@ -16,12 +16,23 @@ class MethodInfo
 
     /**
      * @param $name
-     * @param RouteInfo $routeInfo
+     * @param AnnotationInfo $annotationInfo
      */
     public function __construct($name, AnnotationInfo $annotationInfo)
     {
         $this->name = $name;
         $this->annotationInfo = $annotationInfo;
+    }
+
+    /**
+     * @param array $array
+     * @return $this
+     */
+    public static function __set_state(array $array)
+    {
+        $reflectionClass = new \ReflectionClass(__CLASS__);
+
+        return $reflectionClass->newInstanceArgs($array);
     }
 
     /**

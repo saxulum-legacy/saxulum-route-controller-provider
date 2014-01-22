@@ -33,10 +33,16 @@ class RouteControllerManager
      */
     public function __construct(
         array $paths = array(),
-        Reader $annotationReader = null
+        Reader $annotationReader = null,
+        $cache = null
     ) {
         $this->paths = $paths;
         $this->annotationReader = is_null($annotationReader) ? new AnnotationReader() : $annotationReader;
+        $this->cache = $cache;
+
+        if (!is_null($this->cache) && !is_dir($this->cache)) {
+            mkdir($this->cache, 0777, true);
+        }
     }
 
     /**
@@ -44,54 +50,76 @@ class RouteControllerManager
      */
     public function boot(Application $app)
     {
-        foreach ($this->getControllerInfosForPaths() as $controllerInfo) {
-            $this->addControllerService($app, $controllerInfo);
+        if (!is_null($this->cache)) {
+            $cacheFile = $this->cache . '/saxulum-route-controller.php';
+            if ($app['debug'] || !file_exists($cacheFile)) {
+                file_put_contents($cacheFile, '<?php return ' . var_export($this->getControllerInfos(), true) . ';');
+            }
+            $controllerInfosForPaths = require($cacheFile);
+        } else {
+            $controllerInfosForPaths = $this->getControllerInfos();
+        }
 
-            /** @var ControllerCollection $controllers */
-            $controllers = $app['controllers_factory'];
+        foreach ($controllerInfosForPaths as $controllerInfo) {
+            if ($this->addRoutes($app, $controllerInfo)) {
+                $this->addControllerService($app, $controllerInfo);
+            }
+        }
+    }
 
-            foreach ($controllerInfo->getMethodInfos() as $methodInfo) {
-                $route = $methodInfo->getAnnotationInfo()->getRoute();
-                if (!is_null($route)) {
-                    $to = $controllerInfo->getserviceId() . ':' . $methodInfo->getName();
-                    $controller = $controllers->match($route->getMatch(), $to);
-                    $controller->bind($route->getBind());
-                    foreach ($route->getAsserts() as $variable => $regexp) {
-                        $controller->assert($variable, $regexp);
-                    }
-                    foreach ($route->getValues() as $variable => $default) {
-                        $controller->value($variable, $default);
-                    }
-                    foreach ($route->getConverters() as $converter) {
-                        $controller->convert(
-                            $converter->getVariable(),
-                            $this->fixCallback(
-                                $app,
-                                $controllerInfo,
-                                $converter->getCallback()->getCallback()
-                            )
-                        );
-                    }
-                    $controller->method($route->getMethod());
-                    if ($route->isRequireHttp()) {
-                        $controller->requireHttp();
-                    }
-                    if ($route->isRequireHttps()) {
-                        $controller->requireHttps();
-                    }
-                    foreach ($route->getBefore() as $before) {
-                        $controller->before(
-                            $this->fixCallback($app, $controllerInfo, $before->getCallback())
-                        );
-                    }
-                    foreach ($route->getAfter() as $after) {
-                        $controller->after(
-                            $this->fixCallback($app, $controllerInfo, $after->getCallback())
-                        );
-                    }
+    /**
+     * @param  Application    $app
+     * @param  ControllerInfo $controllerInfo
+     * @return bool
+     */
+    protected function addRoutes(Application $app, ControllerInfo $controllerInfo)
+    {
+        /** @var ControllerCollection $controllers */
+        $controllers = $app['controllers_factory'];
+        $isController = false;
+        foreach ($controllerInfo->getMethodInfos() as $methodInfo) {
+            $route = $methodInfo->getAnnotationInfo()->getRoute();
+            if (!is_null($route)) {
+                $isController = true;
+                $to = $controllerInfo->getserviceId() . ':' . $methodInfo->getName();
+                $controller = $controllers->match($route->getMatch(), $to);
+                $controller->bind($route->getBind());
+                foreach ($route->getAsserts() as $variable => $regexp) {
+                    $controller->assert($variable, $regexp);
+                }
+                foreach ($route->getValues() as $variable => $default) {
+                    $controller->value($variable, $default);
+                }
+                foreach ($route->getConverters() as $converter) {
+                    $controller->convert(
+                        $converter->getVariable(),
+                        $this->fixCallback(
+                            $app,
+                            $controllerInfo,
+                            $converter->getCallback()->getCallback()
+                        )
+                    );
+                }
+                $controller->method($route->getMethod());
+                if ($route->isRequireHttp()) {
+                    $controller->requireHttp();
+                }
+                if ($route->isRequireHttps()) {
+                    $controller->requireHttps();
+                }
+                foreach ($route->getBefore() as $before) {
+                    $controller->before(
+                        $this->fixCallback($app, $controllerInfo, $before->getCallback())
+                    );
+                }
+                foreach ($route->getAfter() as $after) {
+                    $controller->after(
+                        $this->fixCallback($app, $controllerInfo, $after->getCallback())
+                    );
                 }
             }
-
+        }
+        if ($isController) {
             $prefix = '';
             $route = $controllerInfo->getAnnotationInfo()->getRoute();
             if (!is_null($route)) {
@@ -99,7 +127,11 @@ class RouteControllerManager
             }
 
             $app->mount($prefix, $controllers);
+
+            return true;
         }
+
+        return false;
     }
 
     /**
@@ -122,7 +154,7 @@ class RouteControllerManager
                     $controller = $controllerReflectionClass->newInstanceArgs($args);
                 }
             } else {
-                $controller = new $controllerInfo->getNamespace();
+                $controller = $controllerReflectionClass->newInstance();
             }
 
             foreach ($controllerInfo->getMethodInfos() as $methodInfo) {
@@ -147,25 +179,13 @@ class RouteControllerManager
     /**
      * @return ControllerInfo[]
      */
-    protected function getControllerInfosForPaths()
+    protected function getControllerInfos()
     {
         $controllerInfos = array();
         foreach ($this->paths as $path) {
-            $controllerInfos = array_merge($controllerInfos, $this->getControllerInfos($path));
-        }
-
-        return $controllerInfos;
-    }
-
-    /**
-     * @param $path
-     * @return ControllerInfo[]
-     */
-    protected function getControllerInfos($path)
-    {
-        $controllerInfos = array();
-        foreach ($this->getControllerReflections($path) as $controllerReflection) {
-            $controllerInfos[] = $this->getControllerInfo($controllerReflection);
+            foreach ($this->getControllerReflections($path) as $controllerReflection) {
+                $controllerInfos[] = $this->getControllerInfo($controllerReflection);
+            }
         }
 
         return $controllerInfos;
@@ -270,7 +290,7 @@ class RouteControllerManager
             throw new \InvalidArgumentException('Path is not a directory');
         }
 
-        foreach (Finder::create()->files()->name('*Controller.php')->in($path) as $file) {
+        foreach (Finder::create()->files()->name('*.php')->in($path) as $file) {
             $controllerNamespaces = $this->findClassesWithinAFile($file);
             foreach ($controllerNamespaces as $controllerNamespace) {
                 $reflectionClass = new \ReflectionClass($controllerNamespace);

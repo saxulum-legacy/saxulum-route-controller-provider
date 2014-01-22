@@ -2,11 +2,13 @@
 
 namespace Saxulum\RouteController\Annotation;
 
+use Saxulum\RouteController\Helper\SetStateInterface;
+
 /**
  * @Annotation
  * @Target("ANNOTATION")
  */
-class Convert
+class Convert implements SetStateInterface
 {
     /**
      * @var string
@@ -32,6 +34,17 @@ class Convert
             }
             $this->$method($value);
         }
+    }
+
+    /**
+     * @param array $array
+     * @return $this
+     */
+    public static function __set_state(array $array)
+    {
+        $reflectionClass = new \ReflectionClass(__CLASS__);
+
+        return $reflectionClass->newInstance($array);
     }
 
     /**

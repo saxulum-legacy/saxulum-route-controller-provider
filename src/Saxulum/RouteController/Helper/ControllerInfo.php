@@ -2,7 +2,7 @@
 
 namespace Saxulum\RouteController\Helper;
 
-class ControllerInfo
+class ControllerInfo implements SetStateInterface
 {
     /**
      * @var string
@@ -30,6 +30,17 @@ class ControllerInfo
         $this->serviceId = $serviceId;
         $this->annotationInfo = $annotationInfo;
         $this->methodInfos = $methodInfos;
+    }
+
+    /**
+     * @param array $array
+     * @return $this
+     */
+    public static function __set_state(array $array)
+    {
+        $reflectionClass = new \ReflectionClass(__CLASS__);
+
+        return $reflectionClass->newInstanceArgs($array);
     }
 
     /**
