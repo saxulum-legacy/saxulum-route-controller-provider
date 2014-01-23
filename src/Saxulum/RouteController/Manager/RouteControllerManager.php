@@ -50,6 +50,8 @@ class RouteControllerManager
      */
     public function boot(Application $app)
     {
+        $start = microtime(false);
+
         if (!is_null($this->cache)) {
             $cacheFile = $this->cache . '/saxulum-route-controller.php';
             if ($app['debug'] || !file_exists($cacheFile)) {
@@ -65,6 +67,8 @@ class RouteControllerManager
                 $this->addControllerService($app, $controllerInfo);
             }
         }
+
+        echo microtime(false) - $start;die();
     }
 
     /**
@@ -93,7 +97,7 @@ class RouteControllerManager
                 foreach ($route->getConverters() as $converter) {
                     $controller->convert(
                         $converter->getVariable(),
-                        $this->fixCallback(
+                        $this->addClosureForServiceCallback(
                             $app,
                             $controllerInfo,
                             $converter->getCallback()->getCallback()
@@ -109,12 +113,16 @@ class RouteControllerManager
                 }
                 foreach ($route->getBefore() as $before) {
                     $controller->before(
-                        $this->fixCallback($app, $controllerInfo, $before->getCallback())
+                        $this->addClosureForServiceCallback(
+                            $app, $controllerInfo, $before->getCallback()
+                        )
                     );
                 }
                 foreach ($route->getAfter() as $after) {
                     $controller->after(
-                        $this->fixCallback($app, $controllerInfo, $after->getCallback())
+                        $this->addClosureForServiceCallback(
+                            $app, $controllerInfo, $after->getCallback()
+                        )
                     );
                 }
             }
@@ -200,17 +208,19 @@ class RouteControllerManager
      */
     protected function getControllerInfo(\ReflectionClass $reflectionClass)
     {
+        $controllerInfo = $this->getClassInfo($reflectionClass);
+
         $gotRoute = false;
         $methodInfos = array();
 
         $methodRouteAnnotations = array();
         foreach ($reflectionClass->getMethods() as $reflectionMethod) {
-            $methodInfo = $this->getMethodInfo($reflectionMethod);
+            $methodInfo = $this->getMethodInfo($reflectionMethod, $controllerInfo);
             if (!is_null($methodInfo)) {
                 if (!is_null($methodInfo->getAnnotationInfo()->getRoute())) {
                     $gotRoute = true;
                 }
-                $methodInfos[] = $methodInfo;
+                $controllerInfo->addMethodInfo($methodInfo);
             }
         }
 
@@ -218,7 +228,7 @@ class RouteControllerManager
             return null;
         }
 
-        return $this->getClassInfo($reflectionClass, $methodInfos);
+        return $controllerInfo;
     }
 
     /**
@@ -226,7 +236,7 @@ class RouteControllerManager
      * @param  MethodInfo[]     $methodInfos
      * @return ControllerInfo
      */
-    protected function getClassInfo(\ReflectionClass $reflectionClass, array $methodInfos)
+    protected function getClassInfo(\ReflectionClass $reflectionClass)
     {
         $classAnnotation = $this
             ->annotationReader
@@ -249,8 +259,7 @@ class RouteControllerManager
         return new ControllerInfo(
             $classNamespace,
             $this->namespaceToserviceId($classNamespace),
-            new AnnotationInfo($routeAnnotation, $diAnnotation),
-            $methodInfos
+            new AnnotationInfo($routeAnnotation, $diAnnotation)
         );
     }
 
@@ -258,8 +267,10 @@ class RouteControllerManager
      * @param  \ReflectionMethod $reflectionMethod
      * @return MethodInfo
      */
-    protected function getMethodInfo(\ReflectionMethod $reflectionMethod)
-    {
+    protected function getMethodInfo(
+        \ReflectionMethod $reflectionMethod,
+        ControllerInfo $controllerInfo
+    ) {
         if ($reflectionMethod->isPublic()) {
             $methodAnnotations = $this
                 ->annotationReader
@@ -272,6 +283,24 @@ class RouteControllerManager
             foreach ($methodAnnotations as $methodAnnotation) {
                 if ($methodAnnotation instanceof Route) {
                     $routeAnnotation = $methodAnnotation;
+                    foreach ($routeAnnotation->getConverters() as $converter) {
+                        $converter->getCallback()->setCallback($this->replaceSelfKey(
+                            $converter->getCallback()->getCallback(),
+                            $controllerInfo
+                        ));
+                    }
+                    foreach ($routeAnnotation->getBefore() as $before) {
+                        $before->setCallback($this->replaceSelfKey(
+                            $before->getCallback(),
+                            $controllerInfo
+                        ));
+                    }
+                    foreach ($routeAnnotation->getAfter() as $after) {
+                        $after->setCallback($this->replaceSelfKey(
+                            $after->getCallback(),
+                            $controllerInfo
+                        ));
+                    }
                 } elseif ($methodAnnotation instanceof DI) {
                     $diAnnotation = $methodAnnotation;
                 }
@@ -332,18 +361,12 @@ class RouteControllerManager
         return str_replace('\\', '.', strtolower($namespace));
     }
 
-    protected function replaceSelfKey()
-    {
-
-    }
-
     /**
-     * @param Application    $app
-     * @param ControllerInfo $controllerInfo
      * @param $callback
-     * @return callable|string
+     * @param  ControllerInfo $controllerInfo
+     * @return string
      */
-    protected function fixCallback(Application $app, ControllerInfo $controllerInfo, $callback)
+    protected function replaceSelfKey($callback, ControllerInfo $controllerInfo)
     {
         if (is_string($callback)) {
             $matches = array();
@@ -354,12 +377,7 @@ class RouteControllerManager
                     $matches[1] = $controllerInfo->getserviceId();
                 }
 
-                return function () use ($app, $matches) {
-                    return call_user_func_array(
-                        array($app[$matches[1]], $matches[2]),
-                        func_get_args()
-                    );
-                };
+                return $matches[1] . ':' . $matches[2];
             }
 
             // static class call
@@ -369,6 +387,31 @@ class RouteControllerManager
                 }
 
                 return $matches[1] . '::' . $matches[2];
+            }
+        }
+
+        return $callback;
+    }
+
+    /**
+     * @param Application    $app
+     * @param ControllerInfo $controllerInfo
+     * @param $callback
+     * @return callable|string
+     */
+    protected function addClosureForServiceCallback(Application $app, ControllerInfo $controllerInfo, $callback)
+    {
+        if (is_string($callback)) {
+            $matches = array();
+
+            // controller as service callback
+            if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
+                return function () use ($app, $matches) {
+                    return call_user_func_array(
+                        array($app[$matches[1]], $matches[2]),
+                        func_get_args()
+                    );
+                };
             }
         }
 

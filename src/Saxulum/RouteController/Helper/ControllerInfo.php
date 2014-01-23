@@ -74,4 +74,17 @@ class ControllerInfo implements SetStateInterface
     {
         return $this->methodInfos;
     }
+
+    /**
+     * @param MethodInfo $methodInfo
+     * @return $this
+     */
+    public function addMethodInfo(MethodInfo $methodInfo)
+    {
+        if (!in_array($methodInfo, $this->methodInfos)) {
+            $this->methodInfos[] = $methodInfo;
+        }
+
+        return $this;
+    }
 }
