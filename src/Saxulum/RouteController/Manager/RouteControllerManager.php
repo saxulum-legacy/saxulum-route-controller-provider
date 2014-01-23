@@ -184,7 +184,10 @@ class RouteControllerManager
         $controllerInfos = array();
         foreach ($this->paths as $path) {
             foreach ($this->getControllerReflections($path) as $controllerReflection) {
-                $controllerInfos[] = $this->getControllerInfo($controllerReflection);
+                $controllerInfo = $this->getControllerInfo($controllerReflection);
+                if (!is_null($controllerInfo)) {
+                    $controllerInfos[] = $this->getControllerInfo($controllerReflection);
+                }
             }
         }
 
@@ -192,22 +195,63 @@ class RouteControllerManager
     }
 
     /**
-     * @param  \ReflectionClass $reflectionClass
-     * @return ControllerInfo
+     * @param  \ReflectionClass    $reflectionClass
+     * @return ControllerInfo|null
      */
     protected function getControllerInfo(\ReflectionClass $reflectionClass)
     {
+        $gotRoute = false;
         $methodInfos = array();
 
         $methodRouteAnnotations = array();
         foreach ($reflectionClass->getMethods() as $reflectionMethod) {
             $methodInfo = $this->getMethodInfo($reflectionMethod);
             if (!is_null($methodInfo)) {
+                if (!is_null($methodInfo->getAnnotationInfo()->getRoute())) {
+                    $gotRoute = true;
+                }
                 $methodInfos[] = $methodInfo;
             }
         }
 
+        if (!$gotRoute) {
+            return null;
+        }
+
         return $this->getClassInfo($reflectionClass, $methodInfos);
+    }
+
+    /**
+     * @param  \ReflectionClass $reflectionClass
+     * @param  MethodInfo[]     $methodInfos
+     * @return ControllerInfo
+     */
+    protected function getClassInfo(\ReflectionClass $reflectionClass, array $methodInfos)
+    {
+        $classAnnotation = $this
+            ->annotationReader
+            ->getClassAnnotations($reflectionClass)
+        ;
+
+        $routeAnnotation = null;
+        $diAnnotation = null;
+
+        foreach ($classAnnotation as $classAnnotation) {
+            if ($classAnnotation instanceof Route) {
+                $routeAnnotation = $classAnnotation;
+            } elseif ($classAnnotation instanceof DI) {
+                $diAnnotation = $classAnnotation;
+            }
+        }
+
+        $classNamespace = $reflectionClass->getName();
+
+        return new ControllerInfo(
+            $classNamespace,
+            $this->namespaceToserviceId($classNamespace),
+            new AnnotationInfo($routeAnnotation, $diAnnotation),
+            $methodInfos
+        );
     }
 
     /**
@@ -242,39 +286,6 @@ class RouteControllerManager
         }
 
         return null;
-    }
-
-    /**
-     * @param \ReflectionClass $reflectionClass
-     * @param $methodInfos
-     * @return ControllerInfo
-     */
-    protected function getClassInfo(\ReflectionClass $reflectionClass, $methodInfos)
-    {
-        $classAnnotation = $this
-            ->annotationReader
-            ->getClassAnnotations($reflectionClass)
-        ;
-
-        $routeAnnotation = null;
-        $diAnnotation = null;
-
-        foreach ($classAnnotation as $classAnnotation) {
-            if ($classAnnotation instanceof Route) {
-                $routeAnnotation = $classAnnotation;
-            } elseif ($classAnnotation instanceof DI) {
-                $diAnnotation = $classAnnotation;
-            }
-        }
-
-        $classNamespace = $reflectionClass->getName();
-
-        return new ControllerInfo(
-            $classNamespace,
-            $this->namespaceToserviceId($classNamespace),
-            new AnnotationInfo($routeAnnotation, $diAnnotation),
-            $methodInfos
-        );
     }
 
     /**
@@ -319,6 +330,11 @@ class RouteControllerManager
     protected function namespaceToserviceId($namespace)
     {
         return str_replace('\\', '.', strtolower($namespace));
+    }
+
+    protected function replaceSelfKey()
+    {
+
     }
 
     /**
