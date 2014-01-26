@@ -11,7 +11,7 @@ use Saxulum\RouteController\Helper\SetStateInterface;
 class Callback implements SetStateInterface
 {
     /**
-     * @var mixed $callback
+     * @var callable $callback
      */
     protected $callback;
 
@@ -43,7 +43,7 @@ class Callback implements SetStateInterface
     }
 
     /**
-     * @param mixed $callback
+     * @param callable $callback
      */
     public function setCallback($callback)
     {
@@ -51,7 +51,7 @@ class Callback implements SetStateInterface
     }
 
     /**
-     * @return mixed
+     * @return callable
      */
     public function getCallback()
     {

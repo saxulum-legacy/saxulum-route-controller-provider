@@ -2,6 +2,7 @@
 
 namespace Saxulum\RouteController\Annotation;
 
+use Saxulum\RouteController\Annotation\Callback as CallbackAnnotation;
 use Saxulum\RouteController\Helper\SetStateInterface;
 
 /**
@@ -16,7 +17,7 @@ class Convert implements SetStateInterface
     protected $variable;
 
     /**
-     * @var mixed $callback
+     * @var CallbackAnnotation $callback
      */
     protected $callback;
 
@@ -64,7 +65,7 @@ class Convert implements SetStateInterface
     }
 
     /**
-     * @param mixed $callback
+     * @param CallbackAnnotation $callback
      */
     public function setCallback($callback)
     {
@@ -72,7 +73,7 @@ class Convert implements SetStateInterface
     }
 
     /**
-     * @return mixed
+     * @return CallbackAnnotation
      */
     public function getCallback()
     {

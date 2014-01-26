@@ -2,6 +2,7 @@
 
 namespace Saxulum\RouteController\Annotation;
 
+use Saxulum\RouteController\Annotation\Callback as CallbackAnnotation;
 use Saxulum\RouteController\Helper\SetStateInterface;
 
 /**
@@ -51,12 +52,12 @@ class Route implements SetStateInterface
     protected $requireHttps = false;
 
     /**
-     * @var array
+     * @var CallbackAnnotation[]
      */
     protected $before = array();
 
     /**
-     * @var array
+     * @var CallbackAnnotation[]
      */
     protected $after = array();
 
@@ -216,7 +217,7 @@ class Route implements SetStateInterface
     }
 
     /**
-     * @param array $before
+     * @param CallbackAnnotation[] $before
      */
     public function setBefore(array $before)
     {
@@ -224,7 +225,7 @@ class Route implements SetStateInterface
     }
 
     /**
-     * @return array
+     * @return CallbackAnnotation[]
      */
     public function getBefore()
     {
@@ -232,7 +233,7 @@ class Route implements SetStateInterface
     }
 
     /**
-     * @param array $after
+     * @param CallbackAnnotation[] $after
      */
     public function setAfter(array $after)
     {
@@ -240,7 +241,7 @@ class Route implements SetStateInterface
     }
 
     /**
-     * @return array
+     * @return CallbackAnnotation[]
      */
     public function getAfter()
     {

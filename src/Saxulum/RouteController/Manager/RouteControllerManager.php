@@ -30,6 +30,7 @@ class RouteControllerManager
     /**
      * @param array  $paths
      * @param Reader $annotationReader
+     * @param null   $cache
      */
     public function __construct(
         array $paths = array(),
@@ -37,8 +38,12 @@ class RouteControllerManager
         $cache = null
     ) {
         $this->paths = $paths;
-        $this->annotationReader = is_null($annotationReader) ? new AnnotationReader() : $annotationReader;
+        $this->annotationReader = $annotationReader;
         $this->cache = $cache;
+
+        if (is_null($this->annotationReader)) {
+            $this->annotationReader = new AnnotationReader();
+        }
 
         if (!is_null($this->cache) && !is_dir($this->cache)) {
             mkdir($this->cache, 0777, true);
@@ -50,12 +55,13 @@ class RouteControllerManager
      */
     public function boot(Application $app)
     {
-        $start = microtime(false);
-
         if (!is_null($this->cache)) {
             $cacheFile = $this->cache . '/saxulum-route-controller.php';
             if ($app['debug'] || !file_exists($cacheFile)) {
-                file_put_contents($cacheFile, '<?php return ' . var_export($this->getControllerInfos(), true) . ';');
+                file_put_contents(
+                    $cacheFile,
+                    '<?php return ' . var_export($this->getControllerInfos(), true) . ';'
+                );
             }
             $controllerInfosForPaths = require($cacheFile);
         } else {
@@ -67,8 +73,6 @@ class RouteControllerManager
                 $this->addControllerService($app, $controllerInfo);
             }
         }
-
-        echo microtime(false) - $start;die();
     }
 
     /**
@@ -99,7 +103,6 @@ class RouteControllerManager
                         $converter->getVariable(),
                         $this->addClosureForServiceCallback(
                             $app,
-                            $controllerInfo,
                             $converter->getCallback()->getCallback()
                         )
                     );
@@ -114,14 +117,14 @@ class RouteControllerManager
                 foreach ($route->getBefore() as $before) {
                     $controller->before(
                         $this->addClosureForServiceCallback(
-                            $app, $controllerInfo, $before->getCallback()
+                            $app, $before->getCallback()
                         )
                     );
                 }
                 foreach ($route->getAfter() as $after) {
                     $controller->after(
                         $this->addClosureForServiceCallback(
-                            $app, $controllerInfo, $after->getCallback()
+                            $app, $after->getCallback()
                         )
                     );
                 }
@@ -211,9 +214,6 @@ class RouteControllerManager
         $controllerInfo = $this->getClassInfo($reflectionClass);
 
         $gotRoute = false;
-        $methodInfos = array();
-
-        $methodRouteAnnotations = array();
         foreach ($reflectionClass->getMethods() as $reflectionMethod) {
             $methodInfo = $this->getMethodInfo($reflectionMethod, $controllerInfo);
             if (!is_null($methodInfo)) {
@@ -233,12 +233,11 @@ class RouteControllerManager
 
     /**
      * @param  \ReflectionClass $reflectionClass
-     * @param  MethodInfo[]     $methodInfos
      * @return ControllerInfo
      */
     protected function getClassInfo(\ReflectionClass $reflectionClass)
     {
-        $classAnnotation = $this
+        $classAnnotations = $this
             ->annotationReader
             ->getClassAnnotations($reflectionClass)
         ;
@@ -246,7 +245,7 @@ class RouteControllerManager
         $routeAnnotation = null;
         $diAnnotation = null;
 
-        foreach ($classAnnotation as $classAnnotation) {
+        foreach ($classAnnotations as $classAnnotation) {
             if ($classAnnotation instanceof Route) {
                 $routeAnnotation = $classAnnotation;
             } elseif ($classAnnotation instanceof DI) {
@@ -265,7 +264,8 @@ class RouteControllerManager
 
     /**
      * @param  \ReflectionMethod $reflectionMethod
-     * @return MethodInfo
+     * @param  ControllerInfo    $controllerInfo
+     * @return null|MethodInfo
      */
     protected function getMethodInfo(
         \ReflectionMethod $reflectionMethod,
@@ -394,12 +394,11 @@ class RouteControllerManager
     }
 
     /**
-     * @param Application    $app
-     * @param ControllerInfo $controllerInfo
+     * @param Application $app
      * @param $callback
-     * @return callable|string
+     * @return callable
      */
-    protected function addClosureForServiceCallback(Application $app, ControllerInfo $controllerInfo, $callback)
+    protected function addClosureForServiceCallback(Application $app, $callback)
     {
         if (is_string($callback)) {
             $matches = array();
