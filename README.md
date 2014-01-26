@@ -35,6 +35,9 @@ Add this line after you added the `autoload.php` from composer
 
 ### With controller info cache (faster)
 
+* debug: the cache file will be build at each load
+* live: the cache file will be build if not exists, delete it if its out of sync
+
 ```{.php}
 use Saxulum\RouteController\Provider\RouteControllerProvider;
 use Silex\Provider\ServiceControllerServiceProvider;
