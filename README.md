@@ -70,9 +70,9 @@ Usage
 
 ### Route Annotation
 
-`__self` get replaced by the controller class.
-`__self:beforeFirst` calls the method `beforeFirst` on the controller instance
-`__self::beforeSecond` calls the static method `beforeSecond` on the controller
+* `__self` get replaced by the controller class.
+* `__self:beforeFirst` calls the method `beforeFirst` on the controller instance
+* `__self::beforeSecond` calls the static method `beforeSecond` on the controller
 
 #### Controller
 
