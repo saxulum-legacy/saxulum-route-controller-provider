@@ -23,7 +23,7 @@ class RouteControllerProviderTest extends WebTestCase
     {
         $client = $this->createClient();
 
-        $client->request('GET', '/en/hello/url');
+        $client->request('GET', '/en/url');
         $this->assertTrue($client->getResponse()->isOk());
         $this->assertEquals('http://localhost/en/hello/urs', $client->getResponse()->getContent());
     }

@@ -23,9 +23,9 @@ class Test2Controller
     }
 
     /**
-     * @Route("/hello/url", bind="hello_url")
+     * @Route("/url", bind="url")
      */
-    public function hellourlAction()
+    public function urlAction()
     {
         return $this->urlGenerator->generate('hello_name', array('name' => 'urs'), true);
     }
