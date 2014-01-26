@@ -1,8 +1,8 @@
 <?php
 
-namespace Saxulum\Tests\RouteController\Silex\Provider;
+namespace Saxulum\Tests\RouteController\Provider;
 
-use Saxulum\RouteController\Silex\Provider\RouteControllerProvider;
+use Saxulum\RouteController\Provider\RouteControllerProvider;
 use Silex\Application;
 use Silex\Provider\ServiceControllerServiceProvider;
 use Silex\Provider\UrlGeneratorServiceProvider;
@@ -49,7 +49,7 @@ class RouteControllerProviderTest extends WebTestCase
         ));
 
         $app['route_controller_paths'] = $app->share($app->extend('route_controller_paths', function ($paths) {
-            $paths[] = realpath(__DIR__ . '/../../Controller/');
+            $paths[] = realpath(__DIR__ . '/../Controller/');
 
             return $paths;
         }));

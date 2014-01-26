@@ -1,6 +1,6 @@
 <?php
 
-namespace Saxulum\RouteController\Silex\Provider;
+namespace Saxulum\RouteController\Provider;
 
 use Doctrine\Common\Annotations\AnnotationReader;
 use Saxulum\RouteController\Manager\RouteControllerManager;
