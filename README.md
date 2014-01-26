@@ -45,8 +45,8 @@ $app->register(new RouteControllerProvider(), array(
 ));
 ```
 
-* debug: the cache file will be build at each load
-* live: the cache file will be build if not exists, delete it if its out of sync
+* `debug`: the cache file will be build at each load
+* `live`: the cache file will be build if not exists, delete it if its out of sync
 
 ### Without controller info cache (slower)
 
