@@ -23,13 +23,19 @@ Requirements
 Installation
 ------------
 
-Through [Composer](http://getcomposer.org) as [saxulum/saxulum-route-controller-provider][2].
+Through [Composer](http://getcomposer.org) as [saxulum/saxulum-route-controller-provider][1].
 
-The [ServiceControllerServiceProvider][1] from silex itself is needed!
+### AnnotationRegistry
 
-With controller info cache (faster)
+Add this line after you added the `autoload.php` from composer
 
-```php
+```{.php}
+\Doctrine\Common\Annotations\AnnotationRegistry::registerLoader(array($loader, 'loadClass'));
+```
+
+### With controller info cache (faster)
+
+```{.php}
 use Saxulum\RouteController\Provider\RouteControllerProvider;
 use Silex\Provider\ServiceControllerServiceProvider;
 
@@ -39,7 +45,7 @@ $app->register(new RouteControllerProvider(), array(
 ));
 ```
 
-Without controller info cache (slower)
+### Without controller info cache (slower)
 
 ```{.php}
 use Saxulum\RouteController\Provider\RouteControllerProvider;
@@ -49,7 +55,7 @@ $app->register(new ServiceControllerServiceProvider());
 $app->register(new RouteControllerProvider());
 ```
 
-Add the controller paths
+### Add the controller paths
 
 ```{.php}
 $app['route_controller_paths'] = $app->share($app->extend('route_controller_paths', function ($paths) {
@@ -62,127 +68,70 @@ $app['route_controller_paths'] = $app->share($app->extend('route_controller_path
 Usage
 -----
 
+### Route Annotation
+
+#### Controller
+
 ```{.php}
-<?php
+use Saxulum\RouteController\Annotation\Route;
 
-namespace Saxulum\Tests\RouteController\Controller;
+/**
+ * @Route("/{_locale}")
+ */
+```
 
+#### Method
+
+```{.php}
 use Saxulum\RouteController\Annotation\Callback;
 use Saxulum\RouteController\Annotation\Convert;
-use Saxulum\RouteController\Annotation\DI;
 use Saxulum\RouteController\Annotation\Route;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
- * @Route("/{_locale}")
- * @DI(injectContainer=true)
+ * @Route("/hello/{name}",
+ *      bind="hello_name",
+ *      asserts={"name"="\w+"},
+ *      values={"name"="world"},
+ *      converters={
+ *          @Convert("name", callback=@Callback("__self:convertName"))
+ *      },
+ *      method="GET",
+ *      requireHttp=false,
+ *      requireHttps=false,
+ *      before={
+ *          @Callback("__self:beforeFirst"),
+ *          @Callback("__self::beforeSecond")
+ *      },
+ *      after={
+ *          @Callback("__self:afterFirst"),
+ *          @Callback("__self::afterSecond")
+ *      }
+ * )
  */
-class TestController
-{
-    /**
-     * @var \Pimple
-     */
-    protected $container;
-
-    public function __construct(\Pimple $container)
-    {
-        $this->container = $container;
-    }
-
-    /**
-     * @Route("/hello/{name}",
-     *      bind="hello_name",
-     *      asserts={"name"="\w+"},
-     *      values={"name"="world"},
-     *      converters={
-     *          @Convert("name", callback=@Callback("__self:convertName"))
-     *      },
-     *      method="GET",
-     *      requireHttp=false,
-     *      requireHttps=false,
-     *      before={
-     *          @Callback("__self:beforeFirst"),
-     *          @Callback("__self::beforeSecond")
-     *      },
-     *      after={
-     *          @Callback("__self:afterFirst"),
-     *          @Callback("__self::afterSecond")
-     *      }
-     * )
-     */
-    public function hellonameAction($name)
-    {
-        return 'hello ' . $name . '!';
-    }
-
-    public function convertName($name)
-    {
-        $newName = '';
-        $nameLength = strlen($name);
-        for ($i = 0; $nameLength > $i; $i++) {
-            $newName .= $name[$nameLength - 1 - $i];
-        }
-
-        return $newName;
-    }
-
-    public function beforeFirst(Request $request)
-    {
-
-    }
-
-    public static function beforeSecond(Request $request)
-    {
-
-    }
-
-    public function afterFirst(Request $request, Response $response)
-    {
-
-    }
-
-    public static function afterSecond(Request $request, Response $response)
-    {
-
-    }
-}
 ```
+
+### Dependency Injection Annotation
+
+If there is no DI annotation, the controller will be registred without
+any dependencies as long there is at least one method route annotation.
+
+#### Container Injection
 
 ```{.php}
-<?php
-
-namespace Saxulum\Tests\RouteController\Controller;
-
 use Saxulum\RouteController\Annotation\DI;
-use Saxulum\RouteController\Annotation\Route;
-use Symfony\Component\Routing\Generator\UrlGenerator;
 
 /**
- * @Route("/{_locale}")
- * @DI(serviceIds={"url_generator"})
+ * @DI(injectContainer=true)
  */
-class Test2Controller
-{
-    /**
-     * @var UrlGenerator
-     */
-    protected $urlGenerator;
-
-    public function __construct(UrlGenerator $urlGenerator)
-    {
-        $this->urlGenerator = $urlGenerator;
-    }
-
-    /**
-     * @Route("/hello/url", bind="hello_url")
-     */
-    public function hellourlAction()
-    {
-        return $this->urlGenerator->generate('hello_name', array('name' => 'urs'), true);
-    }
-}
 ```
 
-[1]: http://silex.sensiolabs.org/doc/providers/service_controller.html
-[2]: https://packagist.org/packages/saxulum/saxulum-route-controller-provider
+#### Service Injection
+```{.php}
+use Saxulum\RouteController\Annotation\DI;
+
+/**
+ * @DI(serviceIds={"url_generator"})
+ */
+```
+
+[1]: https://packagist.org/packages/saxulum/saxulum-route-controller-provider
