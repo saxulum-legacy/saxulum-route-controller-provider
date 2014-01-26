@@ -13,7 +13,6 @@
         "php": ">=5.3.3",
         "doctrine/annotations": "~1.1",
         "symfony/finder": "~2.3",
-        "symfony/routing": "~2.3",
         "silex/silex": "~1.1"
     },
     "require-dev": {
