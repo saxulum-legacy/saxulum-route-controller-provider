@@ -1,5 +1,5 @@
 {
-    "name": "saxulum-route-controller-provider",
+    "name": "saxulum/saxulum-route-controller-provider",
     "description": "Saxulum Route/Controller Provider",
     "keywords": ["saxulum", "silex", "route", "controller"],
     "license": "MIT",
