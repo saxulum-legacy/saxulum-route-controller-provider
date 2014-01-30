@@ -6,7 +6,7 @@ use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Common\Annotations\Reader;
 use Saxulum\RouteController\Annotation\DI;
 use Saxulum\RouteController\Annotation\Route;
-use Saxulum\RouteController\Helper\ClassFinder;
+use Saxulum\ClassFinder\ClassFinder;
 use Saxulum\RouteController\Helper\AnnotationInfo;
 use Saxulum\RouteController\Helper\ControllerInfo;
 use Saxulum\RouteController\Helper\MethodInfo;
