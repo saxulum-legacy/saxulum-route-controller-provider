@@ -17,6 +17,7 @@ Requirements
 
 * php >=5.3
 * Doctrine Annotations >=1.1
+* Saxulum ClassFinder >=1.0
 * Symfony Finder Component >=2.3
 * Silex >= 1.1
 
