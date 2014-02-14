@@ -34,7 +34,7 @@ class RouteControllerProviderTest extends WebTestCase
 
         $client->request('GET', '/dummy');
         $this->assertTrue($client->getResponse()->isOk());
-        $this->assertEquals('dummy', $client->getResponse()->getContent());
+        $this->assertEquals('http://localhost/dummy', $client->getResponse()->getContent());
     }
 
     public function createApplication()

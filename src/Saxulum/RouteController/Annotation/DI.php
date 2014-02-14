@@ -6,7 +6,7 @@ use Saxulum\RouteController\Helper\SetStateInterface;
 
 /**
  * @Annotation
- * @Target({"CLASS"})
+ * @Target({"CLASS","METHOD"})
  */
 class DI implements SetStateInterface
 {
@@ -32,7 +32,7 @@ class DI implements SetStateInterface
     }
 
     /**
-     * @param array $array
+     * @param  array $array
      * @return $this
      */
     public static function __set_state(array $array)
