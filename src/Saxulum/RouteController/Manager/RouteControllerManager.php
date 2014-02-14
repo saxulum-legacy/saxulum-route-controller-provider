@@ -394,7 +394,7 @@ class RouteControllerManager
     }
 
     /**
-     * @param Application $app
+     * @param  Application $app
      * @param $callback
      * @return callable
      */

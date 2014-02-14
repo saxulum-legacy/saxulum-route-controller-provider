@@ -33,7 +33,7 @@ class ControllerInfo implements SetStateInterface
     }
 
     /**
-     * @param array $array
+     * @param  array $array
      * @return $this
      */
     public static function __set_state(array $array)
@@ -76,7 +76,7 @@ class ControllerInfo implements SetStateInterface
     }
 
     /**
-     * @param MethodInfo $methodInfo
+     * @param  MethodInfo $methodInfo
      * @return $this
      */
     public function addMethodInfo(MethodInfo $methodInfo)
