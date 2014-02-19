@@ -28,14 +28,19 @@ class RouteControllerManager
     protected $annotationReader;
 
     /**
-     * @param array  $paths
-     * @param Reader $annotationReader
-     * @param null   $cache
+     * @var null|string
+     */
+    protected $cache;
+
+    /**
+     * @param array       $paths
+     * @param Reader      $annotationReader
+     * @param null|string $cache
      */
     public function __construct(
         array $paths = array(),
         Reader $annotationReader = null,
-        $cache = null
+        $cache
     ) {
         $this->paths = $paths;
         $this->annotationReader = $annotationReader;
