@@ -157,74 +157,39 @@ class RouteControllerManager
     protected function addControllerService(Application $app, ControllerInfo $controllerInfo)
     {
         $app[$controllerInfo->getserviceId()] = $app->share(function () use ($app, $controllerInfo) {
-            $controller = $this->constructControllerService($app, $controllerInfo);
+            $controllerReflectionClass = new \ReflectionClass($controllerInfo->getNamespace());
+            $di = $controllerInfo->getAnnotationInfo()->getDI();
+            if (!is_null($di)) {
+                if ($di->isInjectContainer()) {
+                    $controller = $controllerReflectionClass->newInstanceArgs(array($app));
+                } else {
+                    $args = array();
+                    foreach ($di->getServiceIds() as $serviceId) {
+                        $args[] = $app[$serviceId];
+                    }
+                    $controller = $controllerReflectionClass->newInstanceArgs($args);
+                }
+            } else {
+                $controller = $controllerReflectionClass->newInstance();
+            }
+
             foreach ($controllerInfo->getMethodInfos() as $methodInfo) {
-                $this->callControllerMethods($app, $methodInfo, $controller);
+                $di = $methodInfo->getAnnotationInfo()->getDI();
+                if (!is_null($di)) {
+                    if ($di->isInjectContainer()) {
+                        call_user_func(array($controller, $methodInfo->getName()), $app);
+                    } else {
+                        $args = array();
+                        foreach ($di->getServiceIds() as $serviceId) {
+                            $args[] = $app[$serviceId];
+                        }
+                        call_user_func_array(array($controller, $methodInfo->getName()), $args);
+                    }
+                }
             }
 
             return $controller;
         });
-    }
-
-    /**
-     * @param  Application    $app
-     * @param  ControllerInfo $controllerInfo
-     * @return object
-     */
-    protected function constructControllerService(Application $app, ControllerInfo $controllerInfo)
-    {
-        $cRefClass = new \ReflectionClass($controllerInfo->getNamespace());
-        $di = $controllerInfo->getAnnotationInfo()->getDI();
-
-        if (!is_null($di)) {
-            if ($di->isInjectContainer()) {
-                return $cRefClass->newInstance($app);
-            }
-
-            return $this->constructControllerWithArguments($app, $cRefClass, $di);
-        }
-
-        return $cRefClass->newInstance();
-    }
-
-    /**
-     * @param  Application      $app
-     * @param  \ReflectionClass $cRefClass
-     * @param  DI               $di
-     * @return object
-     */
-    protected function constructControllerWithArguments(Application $app, \ReflectionClass $cRefClass, DI $di)
-    {
-        $args = array();
-        foreach ($di->getServiceIds() as $serviceId) {
-            $args[] = $app[$serviceId];
-        }
-
-        return $cRefClass->newInstanceArgs($args);
-    }
-
-    /**
-     * @param  Application $app
-     * @param  MethodInfo  $methodInfo
-     * @param $controller
-     * @return mixed
-     */
-    protected function callControllerMethods(Application $app, MethodInfo $methodInfo, $controller)
-    {
-        $di = $methodInfo->getAnnotationInfo()->getDI();
-
-        if (!is_null($di)) {
-            if ($di->isInjectContainer()) {
-                return call_user_func(array($controller, $methodInfo->getName()), $app);
-            }
-
-            $args = array();
-            foreach ($di->getServiceIds() as $serviceId) {
-                $args[] = $app[$serviceId];
-            }
-
-            return call_user_func_array(array($controller, $methodInfo->getName()), $args);
-        }
     }
 
     /**
