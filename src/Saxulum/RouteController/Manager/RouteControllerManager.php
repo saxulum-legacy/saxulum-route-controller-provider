@@ -402,7 +402,7 @@ class RouteControllerManager
     }
 
     /**
-     * @param $callback
+     * @param  callable       $callback
      * @param  ControllerInfo $controllerInfo
      * @return string
      */
@@ -435,7 +435,7 @@ class RouteControllerManager
 
     /**
      * @param  Application $app
-     * @param $callback
+     * @param  callable    $callback
      * @return callable
      */
     protected function addClosureForServiceCallback(Application $app, $callback)

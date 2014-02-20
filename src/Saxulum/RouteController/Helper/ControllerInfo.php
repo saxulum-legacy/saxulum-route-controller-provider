@@ -24,6 +24,10 @@ class ControllerInfo implements SetStateInterface
      */
     protected $methodInfos;
 
+    /**
+     * @param string $namespace
+     * @param string $serviceId
+     */
     public function __construct($namespace, $serviceId, AnnotationInfo $annotationInfo, array $methodInfos = array())
     {
         $this->namespace = $namespace;

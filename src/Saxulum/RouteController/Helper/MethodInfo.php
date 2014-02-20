@@ -15,7 +15,7 @@ class MethodInfo implements SetStateInterface
     protected $annotationInfo;
 
     /**
-     * @param $name
+     * @param string         $name
      * @param AnnotationInfo $annotationInfo
      */
     public function __construct($name, AnnotationInfo $annotationInfo)
