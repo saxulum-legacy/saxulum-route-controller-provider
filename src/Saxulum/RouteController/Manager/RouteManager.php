@@ -45,6 +45,12 @@ class RouteManager
             new \PHPParser_Node_Expr_ArrayDimFetch(
                 new \PHPParser_Node_Expr_Variable('app'),
                 new \PHPParser_Node_Scalar_String('controllers_factory')
+            ),
+            array(
+                'comments' => array(
+                    new \PHPParser_Comment("\n\n"),
+                    new \PHPParser_Comment('/** @var Silex\ControllerCollection $controllers */'),
+                )
             )
         );
     }
