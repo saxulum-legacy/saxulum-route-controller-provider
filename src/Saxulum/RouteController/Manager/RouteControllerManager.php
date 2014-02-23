@@ -46,6 +46,10 @@ class RouteControllerManager
         $this->annotationReader = $annotationReader;
         $this->cache = $cache;
 
+        if(substr($this->cache, -1) == '/') {
+            $this->cache = substr($this->cache, 0, -1);
+        }
+
         if (is_null($this->annotationReader)) {
             $this->annotationReader = new AnnotationReader();
         }
@@ -60,24 +64,43 @@ class RouteControllerManager
      */
     public function boot(Application $app)
     {
-        if (!is_null($this->cache)) {
-            $cacheFile = $this->cache . '/saxulum-route-controller.php';
-            if ($app['debug'] || !file_exists($cacheFile)) {
-                file_put_contents(
-                    $cacheFile,
-                    '<?php return ' . var_export($this->getControllerInfos(), true) . ';'
-                );
-            }
-            $controllerInfosForPaths = require($cacheFile);
-        } else {
-            $controllerInfosForPaths = $this->getControllerInfos();
+        $cacheFileName = 'saxulum-route-controller.php';
+
+        $cacheFile = '';
+
+        if(!is_null($this->cache)) {
+            $cacheFile = $this->cache . '/' . $cacheFileName;
         }
 
-        foreach ($controllerInfosForPaths as $controllerInfo) {
-            if ($this->addRoutes($app, $controllerInfo)) {
-                $this->addControllerService($app, $controllerInfo);
-            }
+        if(!$cacheFile) {
+            $cacheFile = tempnam(sys_get_temp_dir(), $cacheFileName);
         }
+
+
+        if ($app['debug'] || !file_exists($cacheFile)) {
+            $controllerInfos = $this->getControllerInfos();
+
+            $serviceManager = new ServiceManager();
+            $routeManager = new RouteManager();
+
+            $prettyPrinter = new \PHPParser_PrettyPrinter_Default();
+
+            $code = "<?php\n\n";
+
+            foreach ($controllerInfos as $controllerInfo) {
+                $code .= $prettyPrinter->prettyPrint($serviceManager->generateCode($controllerInfo));
+                $code .= "\n\n";
+            }
+
+            foreach ($controllerInfos as $controllerInfo) {
+                $code .= $prettyPrinter->prettyPrint($routeManager->generateCode($controllerInfo));
+                $code .= "\n\n";
+            }
+
+            file_put_contents($cacheFile, $code);
+        }
+
+        require $cacheFile;
     }
 
     /**

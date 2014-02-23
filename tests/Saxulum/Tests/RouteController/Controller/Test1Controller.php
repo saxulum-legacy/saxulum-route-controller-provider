@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
  * @Route("/{_locale}")
  * @DI(injectContainer=true)
  */
-class TestController extends AbstractController
+class Test1Controller extends AbstractController
 {
     /**
      * @Route("/hello/{name}",
