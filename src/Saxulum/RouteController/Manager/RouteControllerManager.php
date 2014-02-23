@@ -76,7 +76,6 @@ class RouteControllerManager
             $cacheFile = tempnam(sys_get_temp_dir(), $cacheFileName);
         }
 
-
         if ($app['debug'] || !file_exists($cacheFile)) {
             $controllerInfos = $this->getControllerInfos();
 
@@ -101,118 +100,6 @@ class RouteControllerManager
         }
 
         require $cacheFile;
-    }
-
-    /**
-     * @param  Application    $app
-     * @param  ControllerInfo $controllerInfo
-     * @return bool
-     */
-    protected function addRoutes(Application $app, ControllerInfo $controllerInfo)
-    {
-        /** @var ControllerCollection $controllers */
-        $controllers = $app['controllers_factory'];
-        $isController = false;
-        foreach ($controllerInfo->getMethodInfos() as $methodInfo) {
-            $route = $methodInfo->getAnnotationInfo()->getRoute();
-            if (!is_null($route)) {
-                $isController = true;
-                $to = $controllerInfo->getserviceId() . ':' . $methodInfo->getName();
-                $controller = $controllers->match($route->getMatch(), $to);
-                $controller->bind($route->getBind());
-                foreach ($route->getAsserts() as $variable => $regexp) {
-                    $controller->assert($variable, $regexp);
-                }
-                foreach ($route->getValues() as $variable => $default) {
-                    $controller->value($variable, $default);
-                }
-                foreach ($route->getConverters() as $converter) {
-                    $controller->convert(
-                        $converter->getVariable(),
-                        $this->addClosureForServiceCallback(
-                            $app,
-                            $converter->getCallback()->getCallback()
-                        )
-                    );
-                }
-                $controller->method($route->getMethod());
-                if ($route->isRequireHttp()) {
-                    $controller->requireHttp();
-                }
-                if ($route->isRequireHttps()) {
-                    $controller->requireHttps();
-                }
-                foreach ($route->getBefore() as $before) {
-                    $controller->before(
-                        $this->addClosureForServiceCallback(
-                            $app, $before->getCallback()
-                        )
-                    );
-                }
-                foreach ($route->getAfter() as $after) {
-                    $controller->after(
-                        $this->addClosureForServiceCallback(
-                            $app, $after->getCallback()
-                        )
-                    );
-                }
-            }
-        }
-        if ($isController) {
-            $prefix = '';
-            $route = $controllerInfo->getAnnotationInfo()->getRoute();
-            if (!is_null($route)) {
-                $prefix = $route->getMatch();
-            }
-
-            $app->mount($prefix, $controllers);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * @param Application    $app
-     * @param ControllerInfo $controllerInfo
-     */
-    protected function addControllerService(Application $app, ControllerInfo $controllerInfo)
-    {
-        $app[$controllerInfo->getserviceId()] = $app->share(function () use ($app, $controllerInfo) {
-            $controllerReflectionClass = new \ReflectionClass($controllerInfo->getNamespace());
-            $di = $controllerInfo->getAnnotationInfo()->getDI();
-            if (!is_null($di)) {
-                if ($di->isInjectContainer()) {
-                    $controller = $controllerReflectionClass->newInstanceArgs(array($app));
-                } else {
-                    $args = array();
-                    foreach ($di->getServiceIds() as $serviceId) {
-                        $args[] = $app[$serviceId];
-                    }
-                    $controller = $controllerReflectionClass->newInstanceArgs($args);
-                }
-            } else {
-                $controller = $controllerReflectionClass->newInstance();
-            }
-
-            foreach ($controllerInfo->getMethodInfos() as $methodInfo) {
-                $di = $methodInfo->getAnnotationInfo()->getDI();
-                if (!is_null($di)) {
-                    if ($di->isInjectContainer()) {
-                        call_user_func(array($controller, $methodInfo->getName()), $app);
-                    } else {
-                        $args = array();
-                        foreach ($di->getServiceIds() as $serviceId) {
-                            $args[] = $app[$serviceId];
-                        }
-                        call_user_func_array(array($controller, $methodInfo->getName()), $args);
-                    }
-                }
-            }
-
-            return $controller;
-        });
     }
 
     /**
@@ -311,24 +198,6 @@ class RouteControllerManager
             foreach ($methodAnnotations as $methodAnnotation) {
                 if ($methodAnnotation instanceof Route) {
                     $routeAnnotation = $methodAnnotation;
-                    foreach ($routeAnnotation->getConverters() as $converter) {
-                        $converter->getCallback()->setCallback($this->replaceSelfKey(
-                            $converter->getCallback()->getCallback(),
-                            $controllerInfo
-                        ));
-                    }
-                    foreach ($routeAnnotation->getBefore() as $before) {
-                        $before->setCallback($this->replaceSelfKey(
-                            $before->getCallback(),
-                            $controllerInfo
-                        ));
-                    }
-                    foreach ($routeAnnotation->getAfter() as $after) {
-                        $after->setCallback($this->replaceSelfKey(
-                            $after->getCallback(),
-                            $controllerInfo
-                        ));
-                    }
                 } elseif ($methodAnnotation instanceof DI) {
                     $diAnnotation = $methodAnnotation;
                 }
@@ -387,61 +256,5 @@ class RouteControllerManager
     protected function namespaceToserviceId($namespace)
     {
         return str_replace('\\', '.', strtolower($namespace));
-    }
-
-    /**
-     * @param  callable       $callback
-     * @param  ControllerInfo $controllerInfo
-     * @return string
-     */
-    protected function replaceSelfKey($callback, ControllerInfo $controllerInfo)
-    {
-        if (is_string($callback)) {
-            $matches = array();
-
-            // controller as service callback
-            if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
-                if ($matches[1] == '__self') {
-                    $matches[1] = $controllerInfo->getserviceId();
-                }
-
-                return $matches[1] . ':' . $matches[2];
-            }
-
-            // static class call
-            if (preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
-                if ($matches[1] == '__self') {
-                    $matches[1] = $controllerInfo->getNamespace();
-                }
-
-                return $matches[1] . '::' . $matches[2];
-            }
-        }
-
-        return $callback;
-    }
-
-    /**
-     * @param  Application $app
-     * @param  callable    $callback
-     * @return callable
-     */
-    protected function addClosureForServiceCallback(Application $app, $callback)
-    {
-        if (is_string($callback)) {
-            $matches = array();
-
-            // controller as service callback
-            if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
-                return function () use ($app, $matches) {
-                    return call_user_func_array(
-                        array($app[$matches[1]], $matches[2]),
-                        func_get_args()
-                    );
-                };
-            }
-        }
-
-        return $callback;
     }
 }

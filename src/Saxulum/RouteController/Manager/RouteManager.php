@@ -21,12 +21,12 @@ class RouteManager
                 $nodes = array_merge($nodes, $this->prepareControllerBindNode($route));
                 $nodes = array_merge($nodes, $this->prepareControllerAsserts($route));
                 $nodes = array_merge($nodes, $this->prepareControllerValues($route));
-                $nodes = array_merge($nodes, $this->prepareControllerConverters($route));
+                $nodes = array_merge($nodes, $this->prepareControllerConverters($controllerInfo, $route));
                 $nodes = array_merge($nodes, $this->prepareControllerMethod($route));
                 $nodes = array_merge($nodes, $this->prepareControllerIsRequiredHttp($route));
                 $nodes = array_merge($nodes, $this->prepareControllerIsRequiredHttps($route));
-                $nodes = array_merge($nodes, $this->prepareControllerBefore($route));
-                $nodes = array_merge($nodes, $this->prepareControllerAfter($route));
+                $nodes = array_merge($nodes, $this->prepareControllerBefore($controllerInfo, $route));
+                $nodes = array_merge($nodes, $this->prepareControllerAfter($controllerInfo, $route));
             }
         }
 
@@ -155,10 +155,11 @@ class RouteManager
     }
 
     /**
+     * @param ControllerInfo $controllerInfo
      * @param Route $route
      * @return \PHPParser_Node[]
      */
-    protected function prepareControllerConverters(Route $route)
+    protected function prepareControllerConverters(ControllerInfo $controllerInfo, Route $route)
     {
         $nodes = array();
         foreach($route->getConverters() as $converter) {
@@ -170,11 +171,22 @@ class RouteManager
             // controller as service callback
             if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
 
+                if($matches[1] == '__self') {
+                    $matches[1] = $controllerInfo->getserviceId();
+                }
+
                 $callbackNode = $this->prepareControllerConverterClosure(
                     $converter->getVariable(),
                     $matches[1],
                     $matches[2]
                 );
+            } elseif(preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
+
+                if($matches[1] == '__self') {
+                    $matches[1] = $controllerInfo->getNamespace();
+                }
+
+                $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
             } else {
                 $callbackNode = new \PHPParser_Node_Scalar_String($callback);
             }
@@ -287,10 +299,11 @@ class RouteManager
     }
 
     /**
+     * @param ControllerInfo $controllerInfo
      * @param Route $route
      * @return \PHPParser_Node[]
      */
-    protected function prepareControllerBefore(Route $route)
+    protected function prepareControllerBefore(ControllerInfo $controllerInfo, Route $route)
     {
         $nodes = array();
         foreach($route->getBefore() as $before) {
@@ -302,10 +315,21 @@ class RouteManager
             // controller as service callback
             if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
 
+                if($matches[1] == '__self') {
+                    $matches[1] = $controllerInfo->getserviceId();
+                }
+
                 $callbackNode = $this->prepareControllerBeforeClosure(
                     $matches[1],
                     $matches[2]
                 );
+            } elseif(preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
+
+                if($matches[1] == '__self') {
+                    $matches[1] = $controllerInfo->getNamespace();
+                }
+
+                $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
             } else {
                 $callbackNode = new \PHPParser_Node_Scalar_String($callback);
             }
@@ -360,10 +384,11 @@ class RouteManager
     }
 
     /**
+     * @param ControllerInfo $controllerInfo
      * @param Route $route
      * @return \PHPParser_Node[]
      */
-    protected function prepareControllerAfter(Route $route)
+    protected function prepareControllerAfter(ControllerInfo $controllerInfo, Route $route)
     {
         $nodes = array();
         foreach($route->getAfter() as $after) {
@@ -375,10 +400,21 @@ class RouteManager
             // controller as service callback
             if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
 
+                if($matches[1] == '__self') {
+                    $matches[1] = $controllerInfo->getserviceId();
+                }
+
                 $callbackNode = $this->prepareControllerAfterClosure(
                     $matches[1],
                     $matches[2]
                 );
+            } elseif(preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
+
+                if($matches[1] == '__self') {
+                    $matches[1] = $controllerInfo->getNamespace();
+                }
+
+                $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
             } else {
                 $callbackNode = new \PHPParser_Node_Scalar_String($callback);
             }
