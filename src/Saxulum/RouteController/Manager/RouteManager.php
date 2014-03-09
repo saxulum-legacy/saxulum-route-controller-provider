@@ -174,48 +174,104 @@ class RouteManager
         foreach ($route->converters as $converter) {
             /** @var Convert $converter */
 
-            $callback = $converter->callback->callback;
-
-            $matches = array();
-
-            // controller as service callback
-            if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
-
-                if ($matches[1] == '__self') {
-                    $matches[1] = $classInfo->getServiceId();
-                }
-
-                $callbackNode = $this->prepareControllerConverterClosure(
-                    $converter->variable,
-                    $matches[1],
-                    $matches[2]
-                );
-            } elseif (preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
-
-                if ($matches[1] == '__self') {
-                    $matches[1] = $classInfo->getName();
-                }
-
-                $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
-            } else {
-                $callbackNode = new \PHPParser_Node_Scalar_String($callback);
-            }
-
-            $nodes[] = new \PHPParser_Node_Expr_MethodCall(
-                new \PHPParser_Node_Expr_Variable('controller'),
-                'convert',
-                array(
-                    new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String($converter->variable)
-                    ),
-                    new \PHPParser_Node_Arg(
-                        $callbackNode
-                    )
-                )
+            $callbackNode = $this->prepareControllerConverterCallbackNode(
+                $classInfo,
+                $converter->variable,
+                $converter->callback->callback
             );
+
+            if (!is_null($callbackNode)) {
+                $nodes[] = new \PHPParser_Node_Expr_MethodCall(
+                    new \PHPParser_Node_Expr_Variable('controller'),
+                    'convert',
+                    array(
+                        new \PHPParser_Node_Arg(
+                            new \PHPParser_Node_Scalar_String($converter->variable)
+                        ),
+                        new \PHPParser_Node_Arg(
+                            $callbackNode
+                        )
+                    )
+                );
+            }
         }
 
         return $nodes;
+    }
+
+    /**
+     * @param  ClassInfo                 $classInfo
+     * @param  string                    $variable
+     * @param  callable                  $callback
+     * @return null|\PHPParser_Node_Expr
+     */
+    protected function prepareControllerConverterCallbackNode(ClassInfo $classInfo, $variable, $callback)
+    {
+        if (is_array($callback)) {
+            return $this->prepareControllerConverterArrayCallbackNode($classInfo, $callback);
+        }
+
+        if (is_scalar($callback)) {
+            return $this->prepareControllerConverterScalarCallbackNode($classInfo, $variable, $callback);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param ClassInfo $classInfo
+     * @param array $callback
+     * @return \PHPParser_Node_Expr
+     */
+    protected function prepareControllerConverterArrayCallbackNode(ClassInfo $classInfo, array $callback)
+    {
+        if ($callback[0] == '__self') {
+            $callback[0] = $classInfo->getName();
+        }
+
+        return new \PHPParser_Node_Expr_Array(
+            new \PHPParser_Node_Expr_ArrayItem(
+                new \PHPParser_Node_Scalar_String($callback[0])
+            ),
+            new \PHPParser_Node_Expr_ArrayItem(
+                new \PHPParser_Node_Scalar_String($callback[1])
+            )
+        );
+    }
+
+    /**
+     * @param ClassInfo $classInfo
+     * @param $variable
+     * @param $callback
+     * @return \PHPParser_Node_Expr
+     */
+    protected function prepareControllerConverterScalarCallbackNode(ClassInfo $classInfo, $variable, $callback)
+    {
+        $matches = array();
+
+        if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
+
+            if ($matches[1] == '__self') {
+                $matches[1] = $classInfo->getServiceId();
+            }
+
+            return $this->prepareControllerConverterClosure(
+                $variable,
+                $matches[1],
+                $matches[2]
+            );
+        }
+
+        if (preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
+
+            if ($matches[1] == '__self') {
+                $matches[1] = $classInfo->getName();
+            }
+
+            return new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
+        }
+
+        return new \PHPParser_Node_Scalar_String($callback);
     }
 
     /**
@@ -319,42 +375,97 @@ class RouteManager
         foreach ($route->before as $before) {
             /** @var CallbackAnnotation $before */
 
-            $matches = array();
-
-            // controller as service callback
-            if (preg_match('/^([^:]+):([^:]+)$/', $before->callback, $matches) === 1) {
-
-                if ($matches[1] == '__self') {
-                    $matches[1] = $classInfo->getServiceId();
-                }
-
-                $callbackNode = $this->prepareControllerBeforeClosure(
-                    $matches[1],
-                    $matches[2]
-                );
-            } elseif (preg_match('/^([^:]+)::([^:]+)$/', $before->callback, $matches) === 1) {
-
-                if ($matches[1] == '__self') {
-                    $matches[1] = $classInfo->getName();
-                }
-
-                $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
-            } else {
-                $callbackNode = new \PHPParser_Node_Scalar_String($before->callback);
-            }
-
-            $nodes[] = new \PHPParser_Node_Expr_MethodCall(
-                new \PHPParser_Node_Expr_Variable('controller'),
-                'before',
-                array(
-                    new \PHPParser_Node_Arg(
-                        $callbackNode
-                    )
-                )
+            $callbackNode = $this->prepareControllerBeforeCallbackNode(
+                $classInfo,
+                $before->callback
             );
+
+            if(!is_null($callbackNode)) {
+                $nodes[] = new \PHPParser_Node_Expr_MethodCall(
+                    new \PHPParser_Node_Expr_Variable('controller'),
+                    'before',
+                    array(
+                        new \PHPParser_Node_Arg(
+                            $callbackNode
+                        )
+                    )
+                );
+            }
         }
 
         return $nodes;
+    }
+
+    /**
+     * @param ClassInfo $classInfo
+     * @param $callback
+     * @return null|\PHPParser_Node_Expr
+     */
+    protected function prepareControllerBeforeCallbackNode(ClassInfo $classInfo, $callback)
+    {
+        if (is_array($callback)) {
+            return $this->prepareControllerBeforeArrayCallbackNode($classInfo, $callback);
+        }
+
+        if (is_scalar($callback)) {
+            return $this->prepareControllerBeforeScalarCallbackNode($classInfo, $callback);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param ClassInfo $classInfo
+     * @param array $callback
+     * @return \PHPParser_Node_Expr
+     */
+    protected function prepareControllerBeforeArrayCallbackNode(ClassInfo $classInfo, array $callback)
+    {
+        if ($callback[0] == '__self') {
+            $callback[0] = $classInfo->getName();
+        }
+
+        return new \PHPParser_Node_Expr_Array(
+            new \PHPParser_Node_Expr_ArrayItem(
+                new \PHPParser_Node_Scalar_String($callback[0])
+            ),
+            new \PHPParser_Node_Expr_ArrayItem(
+                new \PHPParser_Node_Scalar_String($callback[1])
+            )
+        );
+    }
+
+    /**
+     * @param ClassInfo $classInfo
+     * @param $callback
+     * @return \PHPParser_Node_Expr
+     */
+    protected function prepareControllerBeforeScalarCallbackNode(ClassInfo $classInfo, $callback)
+    {
+        $matches = array();
+
+        if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
+
+            if ($matches[1] == '__self') {
+                $matches[1] = $classInfo->getServiceId();
+            }
+
+            return $this->prepareControllerBeforeClosure(
+                $matches[1],
+                $matches[2]
+            );
+        }
+
+        if (preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
+
+            if ($matches[1] == '__self') {
+                $matches[1] = $classInfo->getName();
+            }
+
+            return new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
+        }
+
+        return new \PHPParser_Node_Scalar_String($callback);
     }
 
     /**
@@ -403,42 +514,97 @@ class RouteManager
         foreach ($route->after as $after) {
             /** @var CallbackAnnotation $after */
 
-            $matches = array();
-
-            // controller as service callback
-            if (preg_match('/^([^:]+):([^:]+)$/', $after->callback, $matches) === 1) {
-
-                if ($matches[1] == '__self') {
-                    $matches[1] = $classInfo->getServiceId();
-                }
-
-                $callbackNode = $this->prepareControllerAfterClosure(
-                    $matches[1],
-                    $matches[2]
-                );
-            } elseif (preg_match('/^([^:]+)::([^:]+)$/', $after->callback, $matches) === 1) {
-
-                if ($matches[1] == '__self') {
-                    $matches[1] = $classInfo->getName();
-                }
-
-                $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
-            } else {
-                $callbackNode = new \PHPParser_Node_Scalar_String($after->callback);
-            }
-
-            $nodes[] = new \PHPParser_Node_Expr_MethodCall(
-                new \PHPParser_Node_Expr_Variable('controller'),
-                'after',
-                array(
-                    new \PHPParser_Node_Arg(
-                        $callbackNode
-                    )
-                )
+            $callbackNode = $this->prepareControllerBeforeCallbackNode(
+                $classInfo,
+                $after->callback
             );
+
+            if(!is_null($callbackNode)) {
+                $nodes[] = new \PHPParser_Node_Expr_MethodCall(
+                    new \PHPParser_Node_Expr_Variable('controller'),
+                    'after',
+                    array(
+                        new \PHPParser_Node_Arg(
+                            $callbackNode
+                        )
+                    )
+                );
+            }
         }
 
         return $nodes;
+    }
+
+    /**
+     * @param ClassInfo $classInfo
+     * @param $callback
+     * @return null|\PHPParser_Node_Expr
+     */
+    protected function prepareControllerAfterCallbackNode(ClassInfo $classInfo, $callback)
+    {
+        if (is_array($callback)) {
+            return $this->prepareControllerAfterArrayCallbackNode($classInfo, $callback);
+        }
+
+        if (is_scalar($callback)) {
+            return $this->prepareControllerAfterScalarCallbackNode($classInfo, $callback);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param ClassInfo $classInfo
+     * @param array $callback
+     * @return \PHPParser_Node_Expr
+     */
+    protected function prepareControllerAfterArrayCallbackNode(ClassInfo $classInfo, array $callback)
+    {
+        if ($callback[0] == '__self') {
+            $callback[0] = $classInfo->getName();
+        }
+
+        return new \PHPParser_Node_Expr_Array(
+            new \PHPParser_Node_Expr_ArrayItem(
+                new \PHPParser_Node_Scalar_String($callback[0])
+            ),
+            new \PHPParser_Node_Expr_ArrayItem(
+                new \PHPParser_Node_Scalar_String($callback[1])
+            )
+        );
+    }
+
+    /**
+     * @param ClassInfo $classInfo
+     * @param $callback
+     * @return \PHPParser_Node_Expr
+     */
+    protected function prepareControllerAfterScalarCallbackNode(ClassInfo $classInfo, $callback)
+    {
+        $matches = array();
+
+        if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
+
+            if ($matches[1] == '__self') {
+                $matches[1] = $classInfo->getServiceId();
+            }
+
+            return $this->prepareControllerAfterClosure(
+                $matches[1],
+                $matches[2]
+            );
+        }
+
+        if (preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
+
+            if ($matches[1] == '__self') {
+                $matches[1] = $classInfo->getName();
+            }
+
+            return new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
+        }
+
+        return new \PHPParser_Node_Scalar_String($callback);
     }
 
     /**
