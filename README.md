@@ -17,6 +17,7 @@ Requirements
 
 * php >=5.3
 * Doctrine Annotations >=1.1
+* PHP Parser >=0.9,<1.0
 * Saxulum ClassFinder >=1.0
 * Symfony Finder Component >=2.3
 * Silex >= 1.1
@@ -34,7 +35,7 @@ Add this line after you added the `autoload.php` from composer
 \Doctrine\Common\Annotations\AnnotationRegistry::registerLoader(array($loader, 'loadClass'));
 ```
 
-### With controller info cache (faster)
+### With defined cache dir
 
 ```{.php}
 use Saxulum\RouteController\Provider\RouteControllerProvider;
@@ -49,7 +50,7 @@ $app->register(new RouteControllerProvider(), array(
 * `debug == true`: the cache file will be build at each load
 * `debug == false`: the cache file will be build if not exists, delete it if its out of sync
 
-### Without controller info cache (slower)
+### Without defined cache dir (probably slower, cause temp dir cleanups)
 
 ```{.php}
 use Saxulum\RouteController\Provider\RouteControllerProvider;
@@ -58,6 +59,9 @@ use Silex\Provider\ServiceControllerServiceProvider;
 $app->register(new ServiceControllerServiceProvider());
 $app->register(new RouteControllerProvider());
 ```
+
+* `debug == true`: the cache file will be build at each load
+* `debug == false`: the cache file will be build if not exists, delete it if its out of sync
 
 ### Add the controller paths
 
