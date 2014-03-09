@@ -2,35 +2,38 @@
 
 namespace Saxulum\RouteController\Manager;
 
-use Saxulum\RouteController\Annotation\DI;
+use Saxulum\RouteController\Annotation\Callback as CallbackAnnotation;
+use Saxulum\RouteController\Annotation\Convert;
 use Saxulum\RouteController\Annotation\Route;
-use Saxulum\RouteController\Helper\ControllerInfo;
+use Saxulum\RouteController\Helper\ClassInfo;
 use Saxulum\RouteController\Helper\MethodInfo;
 
 class RouteManager
 {
-    public function generateCode(ControllerInfo $controllerInfo)
+    public function generateCode(ClassInfo $classInfo)
     {
         $nodes = array();
         $nodes[] = $this->prepareControllersNode();
 
-        foreach($controllerInfo->getMethodInfos() as $methodInfo) {
-            $route = $methodInfo->getAnnotationInfo()->getRoute();
-            if(!is_null($route)) {
-                $nodes[] = $this->prepareControllerNode($controllerInfo, $methodInfo, $route);
+        foreach ($classInfo->getMethodInfos() as $methodInfo) {
+            $route = $methodInfo->getFirstAnnotationInstanceof(
+                'Saxulum\\RouteController\\Annotation\\Route'
+            );
+            if (!is_null($route)) {
+                $nodes[] = $this->prepareControllerNode($classInfo, $methodInfo, $route);
                 $nodes = array_merge($nodes, $this->prepareControllerBindNode($route));
                 $nodes = array_merge($nodes, $this->prepareControllerAsserts($route));
                 $nodes = array_merge($nodes, $this->prepareControllerValues($route));
-                $nodes = array_merge($nodes, $this->prepareControllerConverters($controllerInfo, $route));
+                $nodes = array_merge($nodes, $this->prepareControllerConverters($classInfo, $route));
                 $nodes = array_merge($nodes, $this->prepareControllerMethod($route));
                 $nodes = array_merge($nodes, $this->prepareControllerIsRequiredHttp($route));
                 $nodes = array_merge($nodes, $this->prepareControllerIsRequiredHttps($route));
-                $nodes = array_merge($nodes, $this->prepareControllerBefore($controllerInfo, $route));
-                $nodes = array_merge($nodes, $this->prepareControllerAfter($controllerInfo, $route));
+                $nodes = array_merge($nodes, $this->prepareControllerBefore($classInfo, $route));
+                $nodes = array_merge($nodes, $this->prepareControllerAfter($classInfo, $route));
             }
         }
 
-        $nodes[] = $this->prepareControllersMountNode($controllerInfo);
+        $nodes[] = $this->prepareControllersMountNode($classInfo);
 
         return $nodes;
     }
@@ -56,12 +59,12 @@ class RouteManager
     }
 
     /**
-     * @param ControllerInfo $controllerInfo
-     * @param MethodInfo $methodInfo
-     * @param Route $route
+     * @param  ClassInfo                   $classInfo
+     * @param  MethodInfo                  $methodInfo
+     * @param  Route                       $route
      * @return \PHPParser_Node_Expr_Assign
      */
-    protected function prepareControllerNode(ControllerInfo $controllerInfo, MethodInfo $methodInfo, Route $route)
+    protected function prepareControllerNode(ClassInfo $classInfo, MethodInfo $methodInfo, Route $route)
     {
         return new \PHPParser_Node_Expr_Assign(
             new \PHPParser_Node_Expr_Variable('controller'),
@@ -70,11 +73,11 @@ class RouteManager
                 'match',
                 array(
                     new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String($route->getMatch())
+                        new \PHPParser_Node_Scalar_String($route->match)
                     ),
                     new \PHPParser_Node_Arg(
                         new \PHPParser_Node_Scalar_String(
-                            $controllerInfo->getserviceId() . ':' . $methodInfo->getName()
+                            $classInfo->getServiceId() . ':' . $methodInfo->getName()
                         )
                     )
                 )
@@ -82,26 +85,26 @@ class RouteManager
             array(
                 'comments' => array(
                     new \PHPParser_Comment("\n\n"),
-                    new \PHPParser_Comment('// '. $controllerInfo->getserviceId() . ':' . $methodInfo->getName()),
+                    new \PHPParser_Comment('// '. $classInfo->getServiceId() . ':' . $methodInfo->getName()),
                 )
             )
         );
     }
 
     /**
-     * @param Route $route
+     * @param  Route             $route
      * @return \PHPParser_Node[]
      */
     protected function prepareControllerBindNode(Route $route)
     {
         $nodes = array();
-        if(!is_null($route->getBind())) {
+        if (!is_null($route->bind)) {
             $nodes[] = new \PHPParser_Node_Expr_MethodCall(
                 new \PHPParser_Node_Expr_Variable('controller'),
                 'bind',
                 array(
                     new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String($route->getBind())
+                        new \PHPParser_Node_Scalar_String($route->bind)
                     ),
                 )
             );
@@ -111,13 +114,13 @@ class RouteManager
     }
 
     /**
-     * @param Route $route
+     * @param  Route             $route
      * @return \PHPParser_Node[]
      */
     protected function prepareControllerAsserts(Route $route)
     {
         $nodes = array();
-        foreach($route->getAsserts() as $variable => $regexp) {
+        foreach ($route->asserts as $variable => $regexp) {
             $nodes[] = new \PHPParser_Node_Expr_MethodCall(
                 new \PHPParser_Node_Expr_Variable('controller'),
                 'assert',
@@ -136,13 +139,13 @@ class RouteManager
     }
 
     /**
-     * @param Route $route
+     * @param  Route             $route
      * @return \PHPParser_Node[]
      */
     protected function prepareControllerValues(Route $route)
     {
         $nodes = array();
-        foreach($route->getValues() as $variable => $default) {
+        foreach ($route->values as $variable => $default) {
             $nodes[] = new \PHPParser_Node_Expr_MethodCall(
                 new \PHPParser_Node_Expr_Variable('controller'),
                 'value',
@@ -161,35 +164,36 @@ class RouteManager
     }
 
     /**
-     * @param ControllerInfo $controllerInfo
-     * @param Route $route
+     * @param  ClassInfo         $classInfo
+     * @param  Route             $route
      * @return \PHPParser_Node[]
      */
-    protected function prepareControllerConverters(ControllerInfo $controllerInfo, Route $route)
+    protected function prepareControllerConverters(ClassInfo $classInfo, Route $route)
     {
         $nodes = array();
-        foreach($route->getConverters() as $converter) {
+        foreach ($route->converters as $converter) {
+            /** @var Convert $converter */
 
-            $callback = $converter->getCallback()->getCallback();
+            $callback = $converter->callback->callback;
 
             $matches = array();
 
             // controller as service callback
             if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
 
-                if($matches[1] == '__self') {
-                    $matches[1] = $controllerInfo->getserviceId();
+                if ($matches[1] == '__self') {
+                    $matches[1] = $classInfo->getServiceId();
                 }
 
                 $callbackNode = $this->prepareControllerConverterClosure(
-                    $converter->getVariable(),
+                    $converter->variable,
                     $matches[1],
                     $matches[2]
                 );
-            } elseif(preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
+            } elseif (preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
 
-                if($matches[1] == '__self') {
-                    $matches[1] = $controllerInfo->getNamespace();
+                if ($matches[1] == '__self') {
+                    $matches[1] = $classInfo->getName();
                 }
 
                 $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
@@ -202,7 +206,7 @@ class RouteManager
                 'convert',
                 array(
                     new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String($converter->getVariable())
+                        new \PHPParser_Node_Scalar_String($converter->variable)
                     ),
                     new \PHPParser_Node_Arg(
                         $callbackNode
@@ -215,9 +219,9 @@ class RouteManager
     }
 
     /**
-     * @param string $variable
-     * @param string $serviceId
-     * @param string $methodName
+     * @param  string                       $variable
+     * @param  string                       $serviceId
+     * @param  string                       $methodName
      * @return \PHPParser_Node_Expr_Closure
      */
     protected function prepareControllerConverterClosure($variable, $serviceId, $methodName)
@@ -249,19 +253,19 @@ class RouteManager
     }
 
     /**
-     * @param Route $route
+     * @param  Route             $route
      * @return \PHPParser_Node[]
      */
     protected function prepareControllerMethod(Route $route)
     {
         $nodes = array();
-        if(!is_null($route->getMethod())) {
+        if (!is_null($route->method)) {
             $nodes[] = new \PHPParser_Node_Expr_MethodCall(
                 new \PHPParser_Node_Expr_Variable('controller'),
                 'method',
                 array(
                     new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String($route->getMethod())
+                        new \PHPParser_Node_Scalar_String($route->method)
                     ),
                 )
             );
@@ -271,13 +275,13 @@ class RouteManager
     }
 
     /**
-     * @param Route $route
+     * @param  Route             $route
      * @return \PHPParser_Node[]
      */
     protected function prepareControllerIsRequiredHttp(Route $route)
     {
         $nodes = array();
-        if($route->isRequireHttp()) {
+        if ($route->requireHttp) {
             $nodes[] = new \PHPParser_Node_Expr_MethodCall(
                 new \PHPParser_Node_Expr_Variable('controller'),
                 'requireHttp'
@@ -288,13 +292,13 @@ class RouteManager
     }
 
     /**
-     * @param Route $route
+     * @param  Route             $route
      * @return \PHPParser_Node[]
      */
     protected function prepareControllerIsRequiredHttps(Route $route)
     {
         $nodes = array();
-        if($route->isRequireHttp()) {
+        if ($route->requireHttps) {
             $nodes[] = new \PHPParser_Node_Expr_MethodCall(
                 new \PHPParser_Node_Expr_Variable('controller'),
                 'requireHttps'
@@ -305,39 +309,38 @@ class RouteManager
     }
 
     /**
-     * @param ControllerInfo $controllerInfo
-     * @param Route $route
+     * @param  ClassInfo         $classInfo
+     * @param  Route             $route
      * @return \PHPParser_Node[]
      */
-    protected function prepareControllerBefore(ControllerInfo $controllerInfo, Route $route)
+    protected function prepareControllerBefore(ClassInfo $classInfo, Route $route)
     {
         $nodes = array();
-        foreach($route->getBefore() as $before) {
-
-            $callback = $before->getCallback();
+        foreach ($route->before as $before) {
+            /** @var CallbackAnnotation $before */
 
             $matches = array();
 
             // controller as service callback
-            if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
+            if (preg_match('/^([^:]+):([^:]+)$/', $before->callback, $matches) === 1) {
 
-                if($matches[1] == '__self') {
-                    $matches[1] = $controllerInfo->getserviceId();
+                if ($matches[1] == '__self') {
+                    $matches[1] = $classInfo->getServiceId();
                 }
 
                 $callbackNode = $this->prepareControllerBeforeClosure(
                     $matches[1],
                     $matches[2]
                 );
-            } elseif(preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
+            } elseif (preg_match('/^([^:]+)::([^:]+)$/', $before->callback, $matches) === 1) {
 
-                if($matches[1] == '__self') {
-                    $matches[1] = $controllerInfo->getNamespace();
+                if ($matches[1] == '__self') {
+                    $matches[1] = $classInfo->getName();
                 }
 
                 $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
             } else {
-                $callbackNode = new \PHPParser_Node_Scalar_String($callback);
+                $callbackNode = new \PHPParser_Node_Scalar_String($before->callback);
             }
 
             $nodes[] = new \PHPParser_Node_Expr_MethodCall(
@@ -355,8 +358,8 @@ class RouteManager
     }
 
     /**
-     * @param string $serviceId
-     * @param string $methodName
+     * @param  string                       $serviceId
+     * @param  string                       $methodName
      * @return \PHPParser_Node_Expr_Closure
      */
     protected function prepareControllerBeforeClosure($serviceId, $methodName)
@@ -390,39 +393,38 @@ class RouteManager
     }
 
     /**
-     * @param ControllerInfo $controllerInfo
-     * @param Route $route
+     * @param  ClassInfo         $classInfo
+     * @param  Route             $route
      * @return \PHPParser_Node[]
      */
-    protected function prepareControllerAfter(ControllerInfo $controllerInfo, Route $route)
+    protected function prepareControllerAfter(ClassInfo $classInfo, Route $route)
     {
         $nodes = array();
-        foreach($route->getAfter() as $after) {
-
-            $callback = $after->getCallback();
+        foreach ($route->after as $after) {
+            /** @var CallbackAnnotation $after */
 
             $matches = array();
 
             // controller as service callback
-            if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
+            if (preg_match('/^([^:]+):([^:]+)$/', $after->callback, $matches) === 1) {
 
-                if($matches[1] == '__self') {
-                    $matches[1] = $controllerInfo->getserviceId();
+                if ($matches[1] == '__self') {
+                    $matches[1] = $classInfo->getServiceId();
                 }
 
                 $callbackNode = $this->prepareControllerAfterClosure(
                     $matches[1],
                     $matches[2]
                 );
-            } elseif(preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
+            } elseif (preg_match('/^([^:]+)::([^:]+)$/', $after->callback, $matches) === 1) {
 
-                if($matches[1] == '__self') {
-                    $matches[1] = $controllerInfo->getNamespace();
+                if ($matches[1] == '__self') {
+                    $matches[1] = $classInfo->getName();
                 }
 
                 $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
             } else {
-                $callbackNode = new \PHPParser_Node_Scalar_String($callback);
+                $callbackNode = new \PHPParser_Node_Scalar_String($after->callback);
             }
 
             $nodes[] = new \PHPParser_Node_Expr_MethodCall(
@@ -440,8 +442,8 @@ class RouteManager
     }
 
     /**
-     * @param string $serviceId
-     * @param string $methodName
+     * @param  string                       $serviceId
+     * @param  string                       $methodName
      * @return \PHPParser_Node_Expr_Closure
      */
     protected function prepareControllerAfterClosure($serviceId, $methodName)
@@ -479,17 +481,19 @@ class RouteManager
     }
 
     /**
-     * @param ControllerInfo $controllerInfo
+     * @param  ClassInfo                       $classInfo
      * @return \PHPParser_Node_Expr_MethodCall
      */
-    protected function prepareControllersMountNode(ControllerInfo $controllerInfo)
+    protected function prepareControllersMountNode(ClassInfo $classInfo)
     {
         $mount = '';
 
-        $route = $controllerInfo->getAnnotationInfo()->getRoute();
+        $route = $classInfo->getFirstAnnotationInstanceof(
+            'Saxulum\\RouteController\\Annotation\\Route'
+        );
 
-        if(!is_null($route)) {
-            $mount = $route->getMatch();
+        if (!is_null($route)) {
+            $mount = $route->match;
         }
 
         return new \PHPParser_Node_Expr_MethodCall(

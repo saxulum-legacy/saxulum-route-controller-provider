@@ -3,67 +3,69 @@
 namespace Saxulum\RouteController\Manager;
 
 use Saxulum\RouteController\Annotation\DI;
-use Saxulum\RouteController\Helper\ControllerInfo;
+use Saxulum\RouteController\Helper\ClassInfo;
 use Saxulum\RouteController\Helper\MethodInfo;
 
 class ServiceManager
 {
     /**
-     * @param ControllerInfo $controllerInfo
+     * @param  ClassInfo         $classInfo
      * @return \PHPParser_Node[]
      */
-    public function generateCode(ControllerInfo $controllerInfo)
+    public function generateCode(ClassInfo $classInfo)
     {
         $statements = array();
-        $statements[] = $this->prepareConstructStatement($controllerInfo);
+        $statements[] = $this->prepareConstructStatement($classInfo);
 
-        foreach($controllerInfo->getMethodInfos() as $methodInfo) {
+        foreach ($classInfo->getMethodInfos() as $methodInfo) {
             $statement = $this->prepareMethodStatement($methodInfo);
-            if(!is_null($statement)) {
+            if (!is_null($statement)) {
                 $statements[] = $statement;
             }
         }
 
         $statements[] = $this->prepareReturnStatement();
 
-        return array($this->prepareNode($controllerInfo, $statements));
+        return array($this->prepareNode($classInfo, $statements));
     }
 
     /**
-     * @param ControllerInfo $controllerInfo
+     * @param  ClassInfo                   $classInfo
      * @return \PHPParser_Node_Expr_Assign
      */
-    protected function prepareConstructStatement(ControllerInfo $controllerInfo)
+    protected function prepareConstructStatement(ClassInfo $classInfo)
     {
         return new \PHPParser_Node_Expr_Assign(
             new \PHPParser_Node_Expr_Variable('controller'),
             new \PHPParser_Node_Expr_New(
-                new \PHPParser_Node_Name($controllerInfo->getNamespace()),
+                new \PHPParser_Node_Name($classInfo->getName()),
                 $this->prepareConstructArguments(
-                    $controllerInfo->getAnnotationInfo()->getDi()
+                    $classInfo->getFirstAnnotationInstanceof(
+                        'Saxulum\\RouteController\\Annotation\\DI'
+                    )
                 )
             )
         );
     }
 
     /**
-     * @param DI $di
+     * @param  DI                    $di
      * @return \PHPParser_Node_Arg[]
      */
     protected function prepareConstructArguments(DI $di = null)
     {
-        if(is_null($di)) {
+        if (is_null($di)) {
             return array();
         }
 
         $constructArguments = array();
 
-        if($di->isInjectContainer()) {
+        if ($di->injectContainer) {
             $constructArguments[] = new \PHPParser_Node_Arg(
                 new \PHPParser_Node_Expr_Variable('app')
             );
         } else {
-            foreach($di->getServiceIds() as $serviceId) {
+            foreach ($di->serviceIds as $serviceId) {
                 $constructArguments[] = new \PHPParser_Node_Arg(
                     new \PHPParser_Node_Expr_ArrayDimFetch(
                         new \PHPParser_Node_Expr_Variable('app'),
@@ -77,14 +79,16 @@ class ServiceManager
     }
 
     /**
-     * @param MethodInfo $methodInfo
+     * @param  MethodInfo                           $methodInfo
      * @return null|\PHPParser_Node_Expr_MethodCall
      */
     protected function prepareMethodStatement(MethodInfo $methodInfo)
     {
-        $di = $methodInfo->getAnnotationInfo()->getDi();
+        $di = $methodInfo->getFirstAnnotationInstanceof(
+            'Saxulum\\RouteController\\Annotation\\DI'
+        );
 
-        if(is_null($di)) {
+        if (is_null($di)) {
             return null;
         }
 
@@ -96,23 +100,23 @@ class ServiceManager
     }
 
     /**
-     * @param DI $di
+     * @param  DI                    $di
      * @return \PHPParser_Node_Arg[]
      */
     protected function prepareMethodArguments(DI $di)
     {
-        if(is_null($di)) {
+        if (is_null($di)) {
             return array();
         }
 
         $methodArguments = array();
 
-        if($di->isInjectContainer()) {
+        if ($di->injectContainer) {
             $methodArguments[] = new \PHPParser_Node_Arg(
                 new \PHPParser_Node_Expr_Variable('app')
             );
         } else {
-            foreach($di->getServiceIds() as $serviceId) {
+            foreach ($di->serviceIds as $serviceId) {
                 $methodArguments[] = new \PHPParser_Node_Arg(
                     new \PHPParser_Node_Expr_ArrayDimFetch(
                         new \PHPParser_Node_Expr_Variable('app'),
@@ -136,16 +140,16 @@ class ServiceManager
     }
 
     /**
-     * @param ControllerInfo $controllerInfo
-     * @param array $statements
+     * @param  ClassInfo                   $classInfo
+     * @param  array                       $statements
      * @return \PHPParser_Node_Expr_Assign
      */
-    protected function prepareNode(ControllerInfo $controllerInfo, array $statements)
+    protected function prepareNode(ClassInfo $classInfo, array $statements)
     {
         return new \PHPParser_Node_Expr_Assign(
             new \PHPParser_Node_Expr_ArrayDimFetch(
                 new \PHPParser_Node_Expr_Variable('app'),
-                new \PHPParser_Node_Scalar_String($controllerInfo->getserviceId())
+                new \PHPParser_Node_Scalar_String($classInfo->getServiceId())
             ),
             new \PHPParser_Node_Expr_MethodCall(
                 new \PHPParser_Node_Expr_Variable('app'),

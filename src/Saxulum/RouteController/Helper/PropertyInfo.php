@@ -2,4 +2,4 @@
 
 namespace Saxulum\RouteController\Helper;
 
-class MethodInfo extends AbstractInfo {}
+class PropertyInfo extends AbstractInfo {}
