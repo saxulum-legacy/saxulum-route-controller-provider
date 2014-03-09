@@ -219,8 +219,8 @@ class RouteManager
     }
 
     /**
-     * @param  ClassInfo            $classInfo
-     * @param  array                $callback
+     * @param ClassInfo $classInfo
+     * @param array $callback
      * @return \PHPParser_Node_Expr
      */
     protected function prepareControllerConverterArrayCallbackNode(ClassInfo $classInfo, array $callback)
@@ -240,7 +240,7 @@ class RouteManager
     }
 
     /**
-     * @param  ClassInfo            $classInfo
+     * @param ClassInfo $classInfo
      * @param $variable
      * @param $callback
      * @return \PHPParser_Node_Expr
@@ -380,7 +380,7 @@ class RouteManager
                 $before->callback
             );
 
-            if (!is_null($callbackNode)) {
+            if(!is_null($callbackNode)) {
                 $nodes[] = new \PHPParser_Node_Expr_MethodCall(
                     new \PHPParser_Node_Expr_Variable('controller'),
                     'before',
@@ -397,7 +397,7 @@ class RouteManager
     }
 
     /**
-     * @param  ClassInfo                 $classInfo
+     * @param ClassInfo $classInfo
      * @param $callback
      * @return null|\PHPParser_Node_Expr
      */
@@ -415,8 +415,8 @@ class RouteManager
     }
 
     /**
-     * @param  ClassInfo            $classInfo
-     * @param  array                $callback
+     * @param ClassInfo $classInfo
+     * @param array $callback
      * @return \PHPParser_Node_Expr
      */
     protected function prepareControllerBeforeArrayCallbackNode(ClassInfo $classInfo, array $callback)
@@ -436,7 +436,7 @@ class RouteManager
     }
 
     /**
-     * @param  ClassInfo            $classInfo
+     * @param ClassInfo $classInfo
      * @param $callback
      * @return \PHPParser_Node_Expr
      */
@@ -514,12 +514,12 @@ class RouteManager
         foreach ($route->after as $after) {
             /** @var CallbackAnnotation $after */
 
-            $callbackNode = $this->prepareControllerAfterCallbackNode(
+            $callbackNode = $this->prepareControllerBeforeCallbackNode(
                 $classInfo,
                 $after->callback
             );
 
-            if (!is_null($callbackNode)) {
+            if(!is_null($callbackNode)) {
                 $nodes[] = new \PHPParser_Node_Expr_MethodCall(
                     new \PHPParser_Node_Expr_Variable('controller'),
                     'after',
@@ -536,7 +536,7 @@ class RouteManager
     }
 
     /**
-     * @param  ClassInfo                 $classInfo
+     * @param ClassInfo $classInfo
      * @param $callback
      * @return null|\PHPParser_Node_Expr
      */
@@ -554,8 +554,8 @@ class RouteManager
     }
 
     /**
-     * @param  ClassInfo            $classInfo
-     * @param  array                $callback
+     * @param ClassInfo $classInfo
+     * @param array $callback
      * @return \PHPParser_Node_Expr
      */
     protected function prepareControllerAfterArrayCallbackNode(ClassInfo $classInfo, array $callback)
@@ -575,7 +575,7 @@ class RouteManager
     }
 
     /**
-     * @param  ClassInfo            $classInfo
+     * @param ClassInfo $classInfo
      * @param $callback
      * @return \PHPParser_Node_Expr
      */
