@@ -9,7 +9,7 @@ namespace Saxulum\RouteController\Annotation;
 class Callback
 {
     /**
-     * @var callable $callback
+     * @var string $callback
      */
     public $callback;
 
