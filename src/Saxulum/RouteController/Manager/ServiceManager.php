@@ -35,17 +35,15 @@ class ServiceManager
      */
     protected function prepareConstructStatement(ClassInfo $classInfo)
     {
-        $di = $classInfo->getFirstAnnotationInstanceof(
-            'Saxulum\\RouteController\\Annotation\\DI'
-        );
-
-        /** @var DI $di */
-
         return new \PHPParser_Node_Expr_Assign(
             new \PHPParser_Node_Expr_Variable('controller'),
             new \PHPParser_Node_Expr_New(
                 new \PHPParser_Node_Name($classInfo->getName()),
-                $this->prepareConstructArguments($di)
+                $this->prepareConstructArguments(
+                    $classInfo->getFirstAnnotationInstanceof(
+                        'Saxulum\\RouteController\\Annotation\\DI'
+                    )
+                )
             )
         );
     }
@@ -90,8 +88,6 @@ class ServiceManager
             'Saxulum\\RouteController\\Annotation\\DI'
         );
 
-        /** @var DI $di */
-
         if (is_null($di)) {
             return null;
         }
@@ -109,6 +105,10 @@ class ServiceManager
      */
     protected function prepareMethodArguments(DI $di)
     {
+        if (is_null($di)) {
+            return array();
+        }
+
         $methodArguments = array();
 
         if ($di->injectContainer) {
