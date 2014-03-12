@@ -82,7 +82,7 @@ class RouteControllerManager
     }
 
     /**
-     * @param Application $app
+     * @param  Application     $app
      * @throws \LogicException
      */
     public function loadCache(Application $app)
