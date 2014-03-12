@@ -367,7 +367,9 @@ class RouteManager
         return  new \PHPParser_Node_Expr_Closure(
             array(
                 'params' => array(
-                    new \PHPParser_Node_Param('request', '',
+                    new \PHPParser_Node_Param(
+                        'request',
+                        null,
                         new \PHPParser_Node_Name('Symfony\Component\HttpFoundation\Request')
                     )
                 ),
@@ -451,10 +453,14 @@ class RouteManager
         return  new \PHPParser_Node_Expr_Closure(
             array(
                 'params' => array(
-                    new \PHPParser_Node_Param('request', '',
+                    new \PHPParser_Node_Param(
+                        'request',
+                        null,
                         new \PHPParser_Node_Name('Symfony\Component\HttpFoundation\Request')
                     ),
-                    new \PHPParser_Node_Param('response', '',
+                    new \PHPParser_Node_Param(
+                        'response',
+                        null,
                         new \PHPParser_Node_Name('Symfony\Component\HttpFoundation\Response')
                     )
                 ),
