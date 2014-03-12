@@ -3,7 +3,7 @@
 namespace Saxulum\RouteController\Provider;
 
 use Doctrine\Common\Annotations\AnnotationReader;
-use Saxulum\RouteController\Manager\AnnotationManager;
+use Saxulum\AnnotationManager\Manager\AnnotationManager;
 use Saxulum\RouteController\Manager\RouteControllerManager;
 use Saxulum\RouteController\Manager\RouteManager;
 use Saxulum\RouteController\Manager\ServiceManager;

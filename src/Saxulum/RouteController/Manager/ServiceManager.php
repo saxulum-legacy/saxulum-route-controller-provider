@@ -3,8 +3,8 @@
 namespace Saxulum\RouteController\Manager;
 
 use Saxulum\RouteController\Annotation\DI;
-use Saxulum\RouteController\Helper\ClassInfo;
-use Saxulum\RouteController\Helper\MethodInfo;
+use Saxulum\AnnotationManager\Helper\ClassInfo;
+use Saxulum\AnnotationManager\Helper\MethodInfo;
 
 class ServiceManager
 {

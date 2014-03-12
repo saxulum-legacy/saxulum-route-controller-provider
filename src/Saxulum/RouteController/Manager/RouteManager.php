@@ -5,8 +5,8 @@ namespace Saxulum\RouteController\Manager;
 use Saxulum\RouteController\Annotation\Callback as CallbackAnnotation;
 use Saxulum\RouteController\Annotation\Convert;
 use Saxulum\RouteController\Annotation\Route;
-use Saxulum\RouteController\Helper\ClassInfo;
-use Saxulum\RouteController\Helper\MethodInfo;
+use Saxulum\AnnotationManager\Helper\ClassInfo;
+use Saxulum\AnnotationManager\Helper\MethodInfo;
 
 class RouteManager
 {

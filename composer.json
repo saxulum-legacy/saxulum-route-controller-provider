@@ -13,6 +13,7 @@
         "php": ">=5.3.3",
         "doctrine/annotations": "~1.1",
         "nikic/php-parser": "~0.9.4",
+        "saxulum/saxulum-annotation-manager": "~1.0.2",
         "saxulum/saxulum-classfinder": "~1.0.1",
         "silex/silex": "~1.1",
         "symfony/finder": "~2.3"

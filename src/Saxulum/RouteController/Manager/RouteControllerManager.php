@@ -2,6 +2,7 @@
 
 namespace Saxulum\RouteController\Manager;
 
+use Saxulum\AnnotationManager\Manager\AnnotationManager;
 use Silex\Application;
 
 class RouteControllerManager
