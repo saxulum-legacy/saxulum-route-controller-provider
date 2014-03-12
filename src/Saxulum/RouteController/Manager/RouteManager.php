@@ -243,7 +243,9 @@ class RouteManager
                             ),
                             $methodName,
                             array(
-                                new \PHPParser_Node_Expr_Variable($variable)
+                                new \PHPParser_Node_Arg(
+                                    new \PHPParser_Node_Expr_Variable($variable)
+                                )
                             )
                         )
                     )
@@ -385,7 +387,9 @@ class RouteManager
                             ),
                             $methodName,
                             array(
-                                new \PHPParser_Node_Expr_Variable('request')
+                                new \PHPParser_Node_Arg(
+                                    new \PHPParser_Node_Expr_Variable('request')
+                                )
                             )
                         )
                     )
@@ -476,8 +480,12 @@ class RouteManager
                             ),
                             $methodName,
                             array(
-                                new \PHPParser_Node_Expr_Variable('request'),
-                                new \PHPParser_Node_Expr_Variable('response')
+                                new \PHPParser_Node_Arg(
+                                    new \PHPParser_Node_Expr_Variable('request')
+                                ),
+                                new \PHPParser_Node_Arg(
+                                    new \PHPParser_Node_Expr_Variable('response')
+                                )
                             )
                         )
                     )
