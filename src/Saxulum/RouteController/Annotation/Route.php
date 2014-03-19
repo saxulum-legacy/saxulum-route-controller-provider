@@ -2,8 +2,6 @@
 
 namespace Saxulum\RouteController\Annotation;
 
-use Saxulum\RouteController\Annotation\Callback as CallbackAnnotation;
-
 /**
  * @Annotation
  * @Target({"CLASS","METHOD"})
@@ -13,7 +11,7 @@ class Route
     /**
      * @var string
      */
-    public $match;
+    public $value;
 
     /**
      * @var string
@@ -31,7 +29,7 @@ class Route
     public $values = array();
 
     /**
-     * @var Convert[]
+     * @var array
      */
     public $converters = array();
 
@@ -51,24 +49,12 @@ class Route
     public $requireHttps = false;
 
     /**
-     * @var CallbackAnnotation[]
+     * @var array
      */
     public $before = array();
 
     /**
-     * @var CallbackAnnotation[]
+     * @var array
      */
     public $after = array();
-
-    public function __construct(array $data)
-    {
-        if (isset($data['value'])) {
-            $data['match'] = $data['value'];
-            unset($data['value']);
-        }
-
-        foreach ($data as $key => $value) {
-            $this->$key = $value;
-        }
-    }
 }

@@ -11,17 +11,5 @@ class Callback
     /**
      * @var string $callback
      */
-    public $callback;
-
-    public function __construct(array $data)
-    {
-        if (isset($data['value'])) {
-            $data['callback'] = $data['value'];
-            unset($data['value']);
-        }
-
-        foreach ($data as $key => $value) {
-            $this->$key = $value;
-        }
-    }
+    public $value;
 }

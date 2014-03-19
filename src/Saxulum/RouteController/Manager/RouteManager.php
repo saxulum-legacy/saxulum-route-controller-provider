@@ -73,7 +73,7 @@ class RouteManager
                 'match',
                 array(
                     new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String($route->match)
+                        new \PHPParser_Node_Scalar_String($route->value)
                     ),
                     new \PHPParser_Node_Arg(
                         new \PHPParser_Node_Scalar_String(
@@ -174,7 +174,7 @@ class RouteManager
         foreach ($route->converters as $converter) {
             /** @var Convert $converter */
 
-            $callback = $converter->callback->callback;
+            $callback = $converter->callback->value;
 
             $matches = array();
 
@@ -186,7 +186,7 @@ class RouteManager
                 }
 
                 $callbackNode = $this->prepareControllerConverterClosure(
-                    $converter->variable,
+                    $converter->value,
                     $matches[1],
                     $matches[2]
                 );
@@ -206,7 +206,7 @@ class RouteManager
                 'convert',
                 array(
                     new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String($converter->variable)
+                        new \PHPParser_Node_Scalar_String($converter->value)
                     ),
                     new \PHPParser_Node_Arg(
                         $callbackNode
@@ -324,7 +324,7 @@ class RouteManager
             $matches = array();
 
             // controller as service callback
-            if (preg_match('/^([^:]+):([^:]+)$/', $before->callback, $matches) === 1) {
+            if (preg_match('/^([^:]+):([^:]+)$/', $before->value, $matches) === 1) {
 
                 if ($matches[1] == '__self') {
                     $matches[1] = $classInfo->getServiceId();
@@ -334,7 +334,7 @@ class RouteManager
                     $matches[1],
                     $matches[2]
                 );
-            } elseif (preg_match('/^([^:]+)::([^:]+)$/', $before->callback, $matches) === 1) {
+            } elseif (preg_match('/^([^:]+)::([^:]+)$/', $before->value, $matches) === 1) {
 
                 if ($matches[1] == '__self') {
                     $matches[1] = $classInfo->getName();
@@ -342,7 +342,7 @@ class RouteManager
 
                 $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
             } else {
-                $callbackNode = new \PHPParser_Node_Scalar_String($before->callback);
+                $callbackNode = new \PHPParser_Node_Scalar_String($before->value);
             }
 
             $nodes[] = new \PHPParser_Node_Expr_MethodCall(
@@ -412,7 +412,7 @@ class RouteManager
             $matches = array();
 
             // controller as service callback
-            if (preg_match('/^([^:]+):([^:]+)$/', $after->callback, $matches) === 1) {
+            if (preg_match('/^([^:]+):([^:]+)$/', $after->value, $matches) === 1) {
 
                 if ($matches[1] == '__self') {
                     $matches[1] = $classInfo->getServiceId();
@@ -422,7 +422,7 @@ class RouteManager
                     $matches[1],
                     $matches[2]
                 );
-            } elseif (preg_match('/^([^:]+)::([^:]+)$/', $after->callback, $matches) === 1) {
+            } elseif (preg_match('/^([^:]+)::([^:]+)$/', $after->value, $matches) === 1) {
 
                 if ($matches[1] == '__self') {
                     $matches[1] = $classInfo->getName();
@@ -430,7 +430,7 @@ class RouteManager
 
                 $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
             } else {
-                $callbackNode = new \PHPParser_Node_Scalar_String($after->callback);
+                $callbackNode = new \PHPParser_Node_Scalar_String($after->value);
             }
 
             $nodes[] = new \PHPParser_Node_Expr_MethodCall(
@@ -507,7 +507,7 @@ class RouteManager
         );
 
         if (!is_null($route)) {
-            $mount = $route->match;
+            $mount = $route->value;
         }
 
         return new \PHPParser_Node_Expr_MethodCall(
