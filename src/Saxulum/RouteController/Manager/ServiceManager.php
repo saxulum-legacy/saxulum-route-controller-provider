@@ -9,8 +9,8 @@ use Saxulum\AnnotationManager\Helper\MethodInfo;
 class ServiceManager
 {
     /**
-     * @param  ClassInfo         $classInfo
-     * @return \PHPParser_Node[]
+     * @param  ClassInfo                     $classInfo
+     * @return \PHPParser_Node_Expr_Assign[]
      */
     public function generateCode(ClassInfo $classInfo)
     {
