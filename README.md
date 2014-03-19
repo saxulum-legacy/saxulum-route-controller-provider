@@ -69,11 +69,13 @@ $app->register(new RouteControllerProvider());
 ### Add the controller paths
 
 ```{.php}
-$app['route_controller_paths'] = $app->share($app->extend('route_controller_paths', function ($paths) {
-    $paths[] = '/path/to/the/controllers';
+$app['route_controller_paths'] = $app->share(
+    $app->extend('route_controller_paths', function ($paths) {
+        $paths[] = '/path/to/the/controllers';
 
-    return $paths;
-}));
+        return $paths;
+    })
+);
 ```
 
 Usage
