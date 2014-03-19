@@ -6,6 +6,7 @@ saxulum-route-controller-provider
 [![Build Status](https://api.travis-ci.org/saxulum/saxulum-route-controller-provider.png?branch=master)](https://travis-ci.org/saxulum/saxulum-route-controller-provider)
 [![Total Downloads](https://poser.pugx.org/saxulum/saxulum-route-controller-provider/downloads.png)](https://packagist.org/packages/saxulum/saxulum-route-controller-provider)
 [![Latest Stable Version](https://poser.pugx.org/saxulum/saxulum-route-controller-provider/v/stable.png)](https://packagist.org/packages/saxulum/saxulum-route-controller-provider)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/saxulum/saxulum-route-controller-provider/badges/quality-score.png?s=6539e5892cc965ef82ac8ec929442c544a4e02a5)](https://scrutinizer-ci.com/g/saxulum/saxulum-route-controller-provider/)
 
 Features
 --------
