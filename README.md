@@ -32,7 +32,9 @@ Through [Composer](http://getcomposer.org) as [saxulum/saxulum-route-controller-
 Add this line after you added the `autoload.php` from composer
 
 ```{.php}
-\Doctrine\Common\Annotations\AnnotationRegistry::registerLoader(array($loader, 'loadClass'));
+\Doctrine\Common\Annotations\AnnotationRegistry::registerLoader(
+    array($loader, 'loadClass')
+);
 ```
 
 ### With defined cache dir
@@ -50,7 +52,8 @@ $app->register(new RouteControllerProvider(), array(
 * `debug == true`: the cache file will be build at each load
 * `debug == false`: the cache file will be build if not exists, delete it if its out of sync
 
-### Without defined cache dir (probably slower, cause temp dir cleanups)
+### Without defined cache dir
+probably slower, cause temp dir cleanups
 
 ```{.php}
 use Saxulum\RouteController\Provider\RouteControllerProvider;
