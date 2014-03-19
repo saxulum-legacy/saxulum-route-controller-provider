@@ -10,6 +10,10 @@ use Saxulum\AnnotationManager\Helper\MethodInfo;
 
 class RouteManager
 {
+    /**
+     * @param  ClassInfo              $classInfo
+     * @return \PHPParser_Node_Expr[]
+     */
     public function generateCode(ClassInfo $classInfo)
     {
         $nodes = array();
@@ -319,44 +323,60 @@ class RouteManager
     {
         $nodes = array();
         foreach ($route->before as $before) {
-            /** @var CallbackAnnotation $before */
-
-            $matches = array();
-
-            // controller as service callback
-            if (preg_match('/^([^:]+):([^:]+)$/', $before->value, $matches) === 1) {
-
-                if ($matches[1] == '__self') {
-                    $matches[1] = $classInfo->getServiceId();
-                }
-
-                $callbackNode = $this->prepareControllerBeforeClosure(
-                    $matches[1],
-                    $matches[2]
-                );
-            } elseif (preg_match('/^([^:]+)::([^:]+)$/', $before->value, $matches) === 1) {
-
-                if ($matches[1] == '__self') {
-                    $matches[1] = $classInfo->getName();
-                }
-
-                $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
-            } else {
-                $callbackNode = new \PHPParser_Node_Scalar_String($before->value);
-            }
-
-            $nodes[] = new \PHPParser_Node_Expr_MethodCall(
-                new \PHPParser_Node_Expr_Variable('controller'),
+            $nodes[] = $this->prepareControllerCallback(
+                $classInfo,
+                $before,
                 'before',
-                array(
-                    new \PHPParser_Node_Arg(
-                        $callbackNode
-                    )
-                )
+                'prepareControllerBeforeClosure'
             );
         }
 
         return $nodes;
+    }
+
+    /**
+     * @param  CallbackAnnotation              $annotation
+     * @param  string                          $method
+     * @param  string                          $callbackMethod
+     * @return \PHPParser_Node_Expr_MethodCall
+     */
+    protected function prepareControllerCallback(ClassInfo $classInfo, CallbackAnnotation $annotation, $method, $callbackMethod)
+    {
+        /** @var CallbackAnnotation $annotation */
+
+        $matches = array();
+
+        // controller as service callback
+        if (preg_match('/^([^:]+):([^:]+)$/', $annotation->value, $matches) === 1) {
+
+            if ($matches[1] == '__self') {
+                $matches[1] = $classInfo->getServiceId();
+            }
+
+            $callbackNode = $this->$callbackMethod(
+                $matches[1],
+                $matches[2]
+            );
+        } elseif (preg_match('/^([^:]+)::([^:]+)$/', $annotation->value, $matches) === 1) {
+
+            if ($matches[1] == '__self') {
+                $matches[1] = $classInfo->getName();
+            }
+
+            $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
+        } else {
+            $callbackNode = new \PHPParser_Node_Scalar_String($annotation->value);
+        }
+
+        return new \PHPParser_Node_Expr_MethodCall(
+            new \PHPParser_Node_Expr_Variable('controller'),
+            $method,
+            array(
+                new \PHPParser_Node_Arg(
+                    $callbackNode
+                )
+            )
+        );
     }
 
     /**
@@ -407,40 +427,11 @@ class RouteManager
     {
         $nodes = array();
         foreach ($route->after as $after) {
-            /** @var CallbackAnnotation $after */
-
-            $matches = array();
-
-            // controller as service callback
-            if (preg_match('/^([^:]+):([^:]+)$/', $after->value, $matches) === 1) {
-
-                if ($matches[1] == '__self') {
-                    $matches[1] = $classInfo->getServiceId();
-                }
-
-                $callbackNode = $this->prepareControllerAfterClosure(
-                    $matches[1],
-                    $matches[2]
-                );
-            } elseif (preg_match('/^([^:]+)::([^:]+)$/', $after->value, $matches) === 1) {
-
-                if ($matches[1] == '__self') {
-                    $matches[1] = $classInfo->getName();
-                }
-
-                $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
-            } else {
-                $callbackNode = new \PHPParser_Node_Scalar_String($after->value);
-            }
-
-            $nodes[] = new \PHPParser_Node_Expr_MethodCall(
-                new \PHPParser_Node_Expr_Variable('controller'),
+            $nodes[] = $this->prepareControllerCallback(
+                $classInfo,
+                $after,
                 'after',
-                array(
-                    new \PHPParser_Node_Arg(
-                        $callbackNode
-                    )
-                )
+                'prepareControllerAfterClosure'
             );
         }
 
