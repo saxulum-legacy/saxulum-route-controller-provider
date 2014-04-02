@@ -2,7 +2,6 @@
 
 namespace Saxulum\RouteController\Manager;
 
-use PhpParser\Comment;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr\ArrayDimFetch;
 use PhpParser\Node\Expr\Assign;
@@ -66,12 +65,6 @@ class RouteManager
             new ArrayDimFetch(
                 new Variable('app'),
                 new String('controllers_factory')
-            ),
-            array(
-                'comments' => array(
-                    new Comment("\n\n"),
-                    new Comment('/** @var Silex\ControllerCollection $controllers */'),
-                )
             )
         );
     }
@@ -98,12 +91,6 @@ class RouteManager
                             $classInfo->getServiceId() . ':' . $methodInfo->getName()
                         )
                     )
-                )
-            ),
-            array(
-                'comments' => array(
-                    new Comment("\n\n"),
-                    new Comment('// '. $classInfo->getServiceId() . ':' . $methodInfo->getName()),
                 )
             )
         );
@@ -456,12 +443,6 @@ class RouteManager
                 ),
                 new Arg(
                     new Variable('controllers')
-                )
-            ),
-            array(
-                'comments' => array(
-                    new Comment("\n\n"),
-                    new Comment('// mount controllers'),
                 )
             )
         );
