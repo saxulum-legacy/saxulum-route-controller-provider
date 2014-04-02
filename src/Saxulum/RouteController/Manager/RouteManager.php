@@ -25,8 +25,8 @@ use Saxulum\AnnotationManager\Helper\MethodInfo;
 class RouteManager
 {
     /**
-     * @param  ClassInfo           $classInfo
-     * @return NodeAbstract_Expr[]
+     * @param  ClassInfo $classInfo
+     * @return Expr[]
      */
     public function generateCode(ClassInfo $classInfo)
     {
