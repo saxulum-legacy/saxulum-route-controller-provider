@@ -299,8 +299,10 @@ class RouteManager
 
         $matches = array();
 
+        $callback = $annotation->value;
+
         // controller as service callback
-        if (preg_match('/^([^:]+):([^:]+)$/', $annotation->value, $matches) === 1) {
+        if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
 
             if ($matches[1] == '__self') {
                 $matches[1] = $classInfo->getServiceId();
@@ -310,7 +312,7 @@ class RouteManager
                 $matches[1],
                 $matches[2]
             );
-        } elseif (preg_match('/^([^:]+)::([^:]+)$/', $annotation->value, $matches) === 1) {
+        } elseif (preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
 
             if ($matches[1] == '__self') {
                 $matches[1] = $classInfo->getName();
@@ -318,7 +320,7 @@ class RouteManager
 
             $callbackNode = new String($matches[1] . '::' . $matches[2]);
         } else {
-            $callbackNode = new String($annotation->value);
+            $callbackNode = new String($callback);
         }
 
         return new MethodCall(
