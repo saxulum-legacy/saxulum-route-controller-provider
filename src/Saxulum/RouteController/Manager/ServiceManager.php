@@ -2,6 +2,17 @@
 
 namespace Saxulum\RouteController\Manager;
 
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ArrayDimFetch;
+use PhpParser\Node\Expr\Assign;
+use PhpParser\Node\Expr\Closure;
+use PhpParser\Node\Expr\ClosureUse;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Name;
+use PhpParser\Node\Scalar\String;
+use PhpParser\Node\Stmt\Return_;
 use Saxulum\RouteController\Annotation\DI;
 use Saxulum\AnnotationManager\Helper\ClassInfo;
 use Saxulum\AnnotationManager\Helper\MethodInfo;
@@ -9,8 +20,8 @@ use Saxulum\AnnotationManager\Helper\MethodInfo;
 class ServiceManager
 {
     /**
-     * @param  ClassInfo                     $classInfo
-     * @return \PHPParser_Node_Expr_Assign[]
+     * @param  ClassInfo $classInfo
+     * @return Assign[]
      */
     public function generateCode(ClassInfo $classInfo)
     {
@@ -30,8 +41,8 @@ class ServiceManager
     }
 
     /**
-     * @param  ClassInfo                   $classInfo
-     * @return \PHPParser_Node_Expr_Assign
+     * @param  ClassInfo $classInfo
+     * @return Assign
      */
     protected function prepareConstructStatement(ClassInfo $classInfo)
     {
@@ -41,18 +52,18 @@ class ServiceManager
 
         /** @var DI $di */
 
-        return new \PHPParser_Node_Expr_Assign(
-            new \PHPParser_Node_Expr_Variable('controller'),
-            new \PHPParser_Node_Expr_New(
-                new \PHPParser_Node_Name($classInfo->getName()),
+        return new Assign(
+            new Variable('controller'),
+            new New_(
+                new Name($classInfo->getName()),
                 $this->prepareConstructArguments($di)
             )
         );
     }
 
     /**
-     * @param  DI                    $di
-     * @return \PHPParser_Node_Arg[]
+     * @param  DI    $di
+     * @return Arg[]
      */
     protected function prepareConstructArguments(DI $di = null)
     {
@@ -63,15 +74,15 @@ class ServiceManager
         $constructArguments = array();
 
         if ($di->injectContainer) {
-            $constructArguments[] = new \PHPParser_Node_Arg(
-                new \PHPParser_Node_Expr_Variable('app')
+            $constructArguments[] = new Arg(
+                new Variable('app')
             );
         } else {
             foreach ($di->serviceIds as $serviceId) {
-                $constructArguments[] = new \PHPParser_Node_Arg(
-                    new \PHPParser_Node_Expr_ArrayDimFetch(
-                        new \PHPParser_Node_Expr_Variable('app'),
-                        new \PHPParser_Node_Scalar_String($serviceId)
+                $constructArguments[] = new Arg(
+                    new ArrayDimFetch(
+                        new Variable('app'),
+                        new String($serviceId)
                     )
                 );
             }
@@ -81,8 +92,8 @@ class ServiceManager
     }
 
     /**
-     * @param  MethodInfo                           $methodInfo
-     * @return null|\PHPParser_Node_Expr_MethodCall
+     * @param  MethodInfo      $methodInfo
+     * @return null|MethodCall
      */
     protected function prepareMethodStatement(MethodInfo $methodInfo)
     {
@@ -96,31 +107,31 @@ class ServiceManager
             return null;
         }
 
-        return new \PHPParser_Node_Expr_MethodCall(
-            new \PHPParser_Node_Expr_Variable('controller'),
+        return new MethodCall(
+            new Variable('controller'),
             $methodInfo->getName(),
             $this->prepareMethodArguments($di)
         );
     }
 
     /**
-     * @param  DI                    $di
-     * @return \PHPParser_Node_Arg[]
+     * @param  DI    $di
+     * @return Arg[]
      */
     protected function prepareMethodArguments(DI $di)
     {
         $methodArguments = array();
 
         if ($di->injectContainer) {
-            $methodArguments[] = new \PHPParser_Node_Arg(
-                new \PHPParser_Node_Expr_Variable('app')
+            $methodArguments[] = new Arg(
+                new Variable('app')
             );
         } else {
             foreach ($di->serviceIds as $serviceId) {
-                $methodArguments[] = new \PHPParser_Node_Arg(
-                    new \PHPParser_Node_Expr_ArrayDimFetch(
-                        new \PHPParser_Node_Expr_Variable('app'),
-                        new \PHPParser_Node_Scalar_String($serviceId)
+                $methodArguments[] = new Arg(
+                    new ArrayDimFetch(
+                        new Variable('app'),
+                        new String($serviceId)
                     )
                 );
             }
@@ -130,36 +141,36 @@ class ServiceManager
     }
 
     /**
-     * @return \PHPParser_Node_Stmt_Return
+     * @return Return_
      */
     protected function prepareReturnStatement()
     {
-        return new \PHPParser_Node_Stmt_Return(
-            new \PHPParser_Node_Expr_Variable('controller')
+        return new Return_(
+            new Variable('controller')
         );
     }
 
     /**
-     * @param  ClassInfo                   $classInfo
-     * @param  array                       $statements
-     * @return \PHPParser_Node_Expr_Assign
+     * @param  ClassInfo $classInfo
+     * @param  array     $statements
+     * @return Assign
      */
     protected function prepareNode(ClassInfo $classInfo, array $statements)
     {
-        return new \PHPParser_Node_Expr_Assign(
-            new \PHPParser_Node_Expr_ArrayDimFetch(
-                new \PHPParser_Node_Expr_Variable('app'),
-                new \PHPParser_Node_Scalar_String($classInfo->getServiceId())
+        return new Assign(
+            new ArrayDimFetch(
+                new Variable('app'),
+                new String($classInfo->getServiceId())
             ),
-            new \PHPParser_Node_Expr_MethodCall(
-                new \PHPParser_Node_Expr_Variable('app'),
+            new MethodCall(
+                new Variable('app'),
                 'share',
                 array(
-                    new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Expr_Closure(
+                    new Arg(
+                        new Closure(
                             array(
                                 'uses' => array(
-                                    new \PHPParser_Node_Expr_ClosureUse('app')
+                                    new ClosureUse('app')
                                 ),
                                 'stmts' => $statements
                             )

@@ -2,6 +2,19 @@
 
 namespace Saxulum\RouteController\Manager;
 
+use PhpParser\Comment;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\ArrayDimFetch;
+use PhpParser\Node\Expr\Assign;
+use PhpParser\Node\Expr\Closure;
+use PhpParser\Node\Expr\ClosureUse;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Name;
+use PhpParser\Node\Param;
+use PhpParser\Node\Scalar\String;
+use PhpParser\Node\Stmt\Return_;
+use PhpParser\NodeAbstract;
 use Saxulum\RouteController\Annotation\Callback as CallbackAnnotation;
 use Saxulum\RouteController\Annotation\Convert;
 use Saxulum\RouteController\Annotation\Route;
@@ -11,8 +24,8 @@ use Saxulum\AnnotationManager\Helper\MethodInfo;
 class RouteManager
 {
     /**
-     * @param  ClassInfo              $classInfo
-     * @return \PHPParser_Node_Expr[]
+     * @param  ClassInfo           $classInfo
+     * @return NodeAbstract_Expr[]
      */
     public function generateCode(ClassInfo $classInfo)
     {
@@ -43,44 +56,44 @@ class RouteManager
     }
 
     /**
-     * @return \PHPParser_Node_Expr_Assign
+     * @return Assign
      */
     protected function prepareControllersNode()
     {
-        return new \PHPParser_Node_Expr_Assign(
-            new \PHPParser_Node_Expr_Variable('controllers'),
-            new \PHPParser_Node_Expr_ArrayDimFetch(
-                new \PHPParser_Node_Expr_Variable('app'),
-                new \PHPParser_Node_Scalar_String('controllers_factory')
+        return new Assign(
+            new Variable('controllers'),
+            new ArrayDimFetch(
+                new Variable('app'),
+                new String('controllers_factory')
             ),
             array(
                 'comments' => array(
-                    new \PHPParser_Comment("\n\n"),
-                    new \PHPParser_Comment('/** @var Silex\ControllerCollection $controllers */'),
+                    new Comment("\n\n"),
+                    new Comment('/** @var Silex\ControllerCollection $controllers */'),
                 )
             )
         );
     }
 
     /**
-     * @param  ClassInfo                   $classInfo
-     * @param  MethodInfo                  $methodInfo
-     * @param  Route                       $route
-     * @return \PHPParser_Node_Expr_Assign
+     * @param  ClassInfo  $classInfo
+     * @param  MethodInfo $methodInfo
+     * @param  Route      $route
+     * @return Assign
      */
     protected function prepareControllerNode(ClassInfo $classInfo, MethodInfo $methodInfo, Route $route)
     {
-        return new \PHPParser_Node_Expr_Assign(
-            new \PHPParser_Node_Expr_Variable('controller'),
-            new \PHPParser_Node_Expr_MethodCall(
-                new \PHPParser_Node_Expr_Variable('controllers'),
+        return new Assign(
+            new Variable('controller'),
+            new MethodCall(
+                new Variable('controllers'),
                 'match',
                 array(
-                    new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String($route->value)
+                    new Arg(
+                        new String($route->value)
                     ),
-                    new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String(
+                    new Arg(
+                        new String(
                             $classInfo->getServiceId() . ':' . $methodInfo->getName()
                         )
                     )
@@ -88,27 +101,27 @@ class RouteManager
             ),
             array(
                 'comments' => array(
-                    new \PHPParser_Comment("\n\n"),
-                    new \PHPParser_Comment('// '. $classInfo->getServiceId() . ':' . $methodInfo->getName()),
+                    new Comment("\n\n"),
+                    new Comment('// '. $classInfo->getServiceId() . ':' . $methodInfo->getName()),
                 )
             )
         );
     }
 
     /**
-     * @param  Route             $route
-     * @return \PHPParser_Node[]
+     * @param  Route          $route
+     * @return NodeAbstract[]
      */
     protected function prepareControllerBindNode(Route $route)
     {
         $nodes = array();
         if (!is_null($route->bind)) {
-            $nodes[] = new \PHPParser_Node_Expr_MethodCall(
-                new \PHPParser_Node_Expr_Variable('controller'),
+            $nodes[] = new MethodCall(
+                new Variable('controller'),
                 'bind',
                 array(
-                    new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String($route->bind)
+                    new Arg(
+                        new String($route->bind)
                     ),
                 )
             );
@@ -118,22 +131,22 @@ class RouteManager
     }
 
     /**
-     * @param  Route             $route
-     * @return \PHPParser_Node[]
+     * @param  Route          $route
+     * @return NodeAbstract[]
      */
     protected function prepareControllerAsserts(Route $route)
     {
         $nodes = array();
         foreach ($route->asserts as $variable => $regexp) {
-            $nodes[] = new \PHPParser_Node_Expr_MethodCall(
-                new \PHPParser_Node_Expr_Variable('controller'),
+            $nodes[] = new MethodCall(
+                new Variable('controller'),
                 'assert',
                 array(
-                    new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String($variable)
+                    new Arg(
+                        new String($variable)
                     ),
-                    new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String($regexp)
+                    new Arg(
+                        new String($regexp)
                     )
                 )
             );
@@ -143,22 +156,22 @@ class RouteManager
     }
 
     /**
-     * @param  Route             $route
-     * @return \PHPParser_Node[]
+     * @param  Route          $route
+     * @return NodeAbstract[]
      */
     protected function prepareControllerValues(Route $route)
     {
         $nodes = array();
         foreach ($route->values as $variable => $default) {
-            $nodes[] = new \PHPParser_Node_Expr_MethodCall(
-                new \PHPParser_Node_Expr_Variable('controller'),
+            $nodes[] = new MethodCall(
+                new Variable('controller'),
                 'value',
                 array(
-                    new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String($variable)
+                    new Arg(
+                        new String($variable)
                     ),
-                    new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String($default)
+                    new Arg(
+                        new String($default)
                     )
                 )
             );
@@ -168,9 +181,9 @@ class RouteManager
     }
 
     /**
-     * @param  ClassInfo         $classInfo
-     * @param  Route             $route
-     * @return \PHPParser_Node[]
+     * @param  ClassInfo      $classInfo
+     * @param  Route          $route
+     * @return NodeAbstract[]
      */
     protected function prepareControllerConverters(ClassInfo $classInfo, Route $route)
     {
@@ -200,19 +213,19 @@ class RouteManager
                     $matches[1] = $classInfo->getName();
                 }
 
-                $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
+                $callbackNode = new String($matches[1] . '::' . $matches[2]);
             } else {
-                $callbackNode = new \PHPParser_Node_Scalar_String($callback);
+                $callbackNode = new String($callback);
             }
 
-            $nodes[] = new \PHPParser_Node_Expr_MethodCall(
-                new \PHPParser_Node_Expr_Variable('controller'),
+            $nodes[] = new MethodCall(
+                new Variable('controller'),
                 'convert',
                 array(
-                    new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String($converter->value)
+                    new Arg(
+                        new String($converter->value)
                     ),
-                    new \PHPParser_Node_Arg(
+                    new Arg(
                         $callbackNode
                     )
                 )
@@ -223,32 +236,32 @@ class RouteManager
     }
 
     /**
-     * @param  string                       $variable
-     * @param  string                       $serviceId
-     * @param  string                       $methodName
-     * @return \PHPParser_Node_Expr_Closure
+     * @param  string  $variable
+     * @param  string  $serviceId
+     * @param  string  $methodName
+     * @return Closure
      */
     protected function prepareControllerConverterClosure($variable, $serviceId, $methodName)
     {
-        return  new \PHPParser_Node_Expr_Closure(
+        return  new Closure(
             array(
                 'params' => array(
-                    new \PHPParser_Node_Expr_Variable($variable)
+                    new Variable($variable)
                 ),
                 'uses' => array(
-                    new \PHPParser_Node_Expr_ClosureUse('app')
+                    new ClosureUse('app')
                 ),
                 'stmts' => array(
-                    new \PHPParser_Node_Stmt_Return(
-                        new \PHPParser_Node_Expr_MethodCall(
-                            new \PHPParser_Node_Expr_ArrayDimFetch(
-                                new \PHPParser_Node_Expr_Variable('app'),
-                                new \PHPParser_Node_Scalar_String($serviceId)
+                    new Return_(
+                        new MethodCall(
+                            new ArrayDimFetch(
+                                new Variable('app'),
+                                new String($serviceId)
                             ),
                             $methodName,
                             array(
-                                new \PHPParser_Node_Arg(
-                                    new \PHPParser_Node_Expr_Variable($variable)
+                                new Arg(
+                                    new Variable($variable)
                                 )
                             )
                         )
@@ -259,19 +272,19 @@ class RouteManager
     }
 
     /**
-     * @param  Route             $route
-     * @return \PHPParser_Node[]
+     * @param  Route          $route
+     * @return NodeAbstract[]
      */
     protected function prepareControllerMethod(Route $route)
     {
         $nodes = array();
         if (!is_null($route->method)) {
-            $nodes[] = new \PHPParser_Node_Expr_MethodCall(
-                new \PHPParser_Node_Expr_Variable('controller'),
+            $nodes[] = new MethodCall(
+                new Variable('controller'),
                 'method',
                 array(
-                    new \PHPParser_Node_Arg(
-                        new \PHPParser_Node_Scalar_String($route->method)
+                    new Arg(
+                        new String($route->method)
                     ),
                 )
             );
@@ -281,15 +294,15 @@ class RouteManager
     }
 
     /**
-     * @param  Route             $route
-     * @return \PHPParser_Node[]
+     * @param  Route          $route
+     * @return NodeAbstract[]
      */
     protected function prepareControllerIsRequiredHttp(Route $route)
     {
         $nodes = array();
         if ($route->requireHttp) {
-            $nodes[] = new \PHPParser_Node_Expr_MethodCall(
-                new \PHPParser_Node_Expr_Variable('controller'),
+            $nodes[] = new MethodCall(
+                new Variable('controller'),
                 'requireHttp'
             );
         }
@@ -298,15 +311,15 @@ class RouteManager
     }
 
     /**
-     * @param  Route             $route
-     * @return \PHPParser_Node[]
+     * @param  Route          $route
+     * @return NodeAbstract[]
      */
     protected function prepareControllerIsRequiredHttps(Route $route)
     {
         $nodes = array();
         if ($route->requireHttps) {
-            $nodes[] = new \PHPParser_Node_Expr_MethodCall(
-                new \PHPParser_Node_Expr_Variable('controller'),
+            $nodes[] = new MethodCall(
+                new Variable('controller'),
                 'requireHttps'
             );
         }
@@ -315,9 +328,9 @@ class RouteManager
     }
 
     /**
-     * @param  ClassInfo         $classInfo
-     * @param  Route             $route
-     * @return \PHPParser_Node[]
+     * @param  ClassInfo      $classInfo
+     * @param  Route          $route
+     * @return NodeAbstract[]
      */
     protected function prepareControllerBefore(ClassInfo $classInfo, Route $route)
     {
@@ -335,10 +348,10 @@ class RouteManager
     }
 
     /**
-     * @param  CallbackAnnotation              $annotation
-     * @param  string                          $method
-     * @param  string                          $callbackMethod
-     * @return \PHPParser_Node_Expr_MethodCall
+     * @param  CallbackAnnotation $annotation
+     * @param  string             $method
+     * @param  string             $callbackMethod
+     * @return MethodCall
      */
     protected function prepareControllerCallback(ClassInfo $classInfo, CallbackAnnotation $annotation, $method, $callbackMethod)
     {
@@ -363,16 +376,16 @@ class RouteManager
                 $matches[1] = $classInfo->getName();
             }
 
-            $callbackNode = new \PHPParser_Node_Scalar_String($matches[1] . '::' . $matches[2]);
+            $callbackNode = new String($matches[1] . '::' . $matches[2]);
         } else {
-            $callbackNode = new \PHPParser_Node_Scalar_String($annotation->value);
+            $callbackNode = new String($annotation->value);
         }
 
-        return new \PHPParser_Node_Expr_MethodCall(
-            new \PHPParser_Node_Expr_Variable('controller'),
+        return new MethodCall(
+            new Variable('controller'),
             $method,
             array(
-                new \PHPParser_Node_Arg(
+                new Arg(
                     $callbackNode
                 )
             )
@@ -380,35 +393,35 @@ class RouteManager
     }
 
     /**
-     * @param  string                       $serviceId
-     * @param  string                       $methodName
-     * @return \PHPParser_Node_Expr_Closure
+     * @param  string  $serviceId
+     * @param  string  $methodName
+     * @return Closure
      */
     protected function prepareControllerBeforeClosure($serviceId, $methodName)
     {
-        return  new \PHPParser_Node_Expr_Closure(
+        return  new Closure(
             array(
                 'params' => array(
-                    new \PHPParser_Node_Param(
+                    new Param(
                         'request',
                         null,
-                        new \PHPParser_Node_Name('Symfony\Component\HttpFoundation\Request')
+                        new Name('Symfony\Component\HttpFoundation\Request')
                     )
                 ),
                 'uses' => array(
-                    new \PHPParser_Node_Expr_ClosureUse('app')
+                    new ClosureUse('app')
                 ),
                 'stmts' => array(
-                    new \PHPParser_Node_Stmt_Return(
-                        new \PHPParser_Node_Expr_MethodCall(
-                            new \PHPParser_Node_Expr_ArrayDimFetch(
-                                new \PHPParser_Node_Expr_Variable('app'),
-                                new \PHPParser_Node_Scalar_String($serviceId)
+                    new Return_(
+                        new MethodCall(
+                            new ArrayDimFetch(
+                                new Variable('app'),
+                                new String($serviceId)
                             ),
                             $methodName,
                             array(
-                                new \PHPParser_Node_Arg(
-                                    new \PHPParser_Node_Expr_Variable('request')
+                                new Arg(
+                                    new Variable('request')
                                 )
                             )
                         )
@@ -419,9 +432,9 @@ class RouteManager
     }
 
     /**
-     * @param  ClassInfo         $classInfo
-     * @param  Route             $route
-     * @return \PHPParser_Node[]
+     * @param  ClassInfo      $classInfo
+     * @param  Route          $route
+     * @return NodeAbstract[]
      */
     protected function prepareControllerAfter(ClassInfo $classInfo, Route $route)
     {
@@ -439,43 +452,43 @@ class RouteManager
     }
 
     /**
-     * @param  string                       $serviceId
-     * @param  string                       $methodName
-     * @return \PHPParser_Node_Expr_Closure
+     * @param  string  $serviceId
+     * @param  string  $methodName
+     * @return Closure
      */
     protected function prepareControllerAfterClosure($serviceId, $methodName)
     {
-        return  new \PHPParser_Node_Expr_Closure(
+        return  new Closure(
             array(
                 'params' => array(
-                    new \PHPParser_Node_Param(
+                    new Param(
                         'request',
                         null,
-                        new \PHPParser_Node_Name('Symfony\Component\HttpFoundation\Request')
+                        new Name('Symfony\Component\HttpFoundation\Request')
                     ),
-                    new \PHPParser_Node_Param(
+                    new Param(
                         'response',
                         null,
-                        new \PHPParser_Node_Name('Symfony\Component\HttpFoundation\Response')
+                        new Name('Symfony\Component\HttpFoundation\Response')
                     )
                 ),
                 'uses' => array(
-                    new \PHPParser_Node_Expr_ClosureUse('app')
+                    new ClosureUse('app')
                 ),
                 'stmts' => array(
-                    new \PHPParser_Node_Stmt_Return(
-                        new \PHPParser_Node_Expr_MethodCall(
-                            new \PHPParser_Node_Expr_ArrayDimFetch(
-                                new \PHPParser_Node_Expr_Variable('app'),
-                                new \PHPParser_Node_Scalar_String($serviceId)
+                    new Return_(
+                        new MethodCall(
+                            new ArrayDimFetch(
+                                new Variable('app'),
+                                new String($serviceId)
                             ),
                             $methodName,
                             array(
-                                new \PHPParser_Node_Arg(
-                                    new \PHPParser_Node_Expr_Variable('request')
+                                new Arg(
+                                    new Variable('request')
                                 ),
-                                new \PHPParser_Node_Arg(
-                                    new \PHPParser_Node_Expr_Variable('response')
+                                new Arg(
+                                    new Variable('response')
                                 )
                             )
                         )
@@ -486,8 +499,8 @@ class RouteManager
     }
 
     /**
-     * @param  ClassInfo                       $classInfo
-     * @return \PHPParser_Node_Expr_MethodCall
+     * @param  ClassInfo  $classInfo
+     * @return MethodCall
      */
     protected function prepareControllersMountNode(ClassInfo $classInfo)
     {
@@ -501,21 +514,21 @@ class RouteManager
             $mount = $route->value;
         }
 
-        return new \PHPParser_Node_Expr_MethodCall(
-            new \PHPParser_Node_Expr_Variable('app'),
+        return new MethodCall(
+            new Variable('app'),
             'mount',
             array(
-                new \PHPParser_Node_Arg(
-                    new \PHPParser_Node_Scalar_String($mount)
+                new Arg(
+                    new String($mount)
                 ),
-                new \PHPParser_Node_Arg(
-                    new \PHPParser_Node_Expr_Variable('controllers')
+                new Arg(
+                    new Variable('controllers')
                 )
             ),
             array(
                 'comments' => array(
-                    new \PHPParser_Comment("\n\n"),
-                    new \PHPParser_Comment('// mount controllers'),
+                    new Comment("\n\n"),
+                    new Comment('// mount controllers'),
                 )
             )
         );

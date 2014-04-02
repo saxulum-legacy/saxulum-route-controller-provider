@@ -2,6 +2,7 @@
 
 namespace Saxulum\RouteController\Manager;
 
+use PhpParser\PrettyPrinter\Standard;
 use Saxulum\AnnotationManager\Manager\AnnotationManager;
 use Silex\Application;
 
@@ -52,16 +53,16 @@ class RouteControllerManager
     }
 
     /**
-     * @param AnnotationManager                $annotationManager
-     * @param ServiceManager                   $serviceManager
-     * @param RouteManager                     $routeManager
-     * @param \PHPParser_PrettyPrinter_Default $prettyPrinter
+     * @param AnnotationManager $annotationManager
+     * @param ServiceManager    $serviceManager
+     * @param RouteManager      $routeManager
+     * @param Standard          $prettyPrinter
      */
     public function updateCache(
         AnnotationManager $annotationManager,
         ServiceManager $serviceManager,
         RouteManager $routeManager,
-        \PHPParser_PrettyPrinter_Default $prettyPrinter
+        Standard $prettyPrinter
     ) {
         $classInfos = $annotationManager
             ->buildClassInfosBasedOnPaths($this->paths)

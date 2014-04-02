@@ -3,6 +3,7 @@
 namespace Saxulum\RouteController\Provider;
 
 use Doctrine\Common\Annotations\AnnotationReader;
+use PhpParser\PrettyPrinter\Standard;
 use Saxulum\AnnotationManager\Manager\AnnotationManager;
 use Saxulum\RouteController\Manager\RouteControllerManager;
 use Saxulum\RouteController\Manager\RouteManager;
@@ -49,7 +50,7 @@ class RouteControllerProvider implements ServiceProviderInterface
         });
 
         $app['route_controller_pretty_printer'] = $app->share(function () {
-            return new \PHPParser_PrettyPrinter_Default();
+            return new Standard();
         });
     }
 
