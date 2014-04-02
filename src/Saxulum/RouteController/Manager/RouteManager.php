@@ -38,13 +38,13 @@ class RouteManager
             );
             if (!is_null($route)) {
                 $nodes[] = $this->prepareControllerNode($classInfo, $methodInfo, $route);
-                $nodes = array_merge($nodes, $this->prepareControllerBindNode($route));
-                $nodes = array_merge($nodes, $this->prepareControllerAsserts($route));
-                $nodes = array_merge($nodes, $this->prepareControllerValues($route));
+                $nodes = array_merge($nodes, $this->prepareControllerSimple($route, 'bind'));
+                $nodes = array_merge($nodes, $this->prepareControllerComplex($route, 'asserts', 'assert'));
+                $nodes = array_merge($nodes, $this->prepareControllerComplex($route, 'values', 'value'));
                 $nodes = array_merge($nodes, $this->prepareControllerConverters($classInfo, $route));
-                $nodes = array_merge($nodes, $this->prepareControllerMethod($route));
-                $nodes = array_merge($nodes, $this->prepareControllerIsRequiredHttp($route));
-                $nodes = array_merge($nodes, $this->prepareControllerIsRequiredHttps($route));
+                $nodes = array_merge($nodes, $this->prepareControllerSimple($route, 'method'));
+                $nodes = array_merge($nodes, $this->prepareControllerBoolean($route, 'requireHttp'));
+                $nodes = array_merge($nodes, $this->prepareControllerBoolean($route, 'requireHttps'));
                 $nodes = array_merge($nodes, $this->prepareControllerBefore($classInfo, $route));
                 $nodes = array_merge($nodes, $this->prepareControllerAfter($classInfo, $route));
             }
@@ -110,18 +110,19 @@ class RouteManager
 
     /**
      * @param  Route          $route
+     * @param  string         $property
      * @return NodeAbstract[]
      */
-    protected function prepareControllerBindNode(Route $route)
+    protected function prepareControllerSimple(Route $route, $property)
     {
         $nodes = array();
-        if (!is_null($route->bind)) {
+        if (!is_null($route->$property)) {
             $nodes[] = new MethodCall(
                 new Variable('controller'),
-                'bind',
+                $property,
                 array(
                     new Arg(
-                        new String($route->bind)
+                        new String($route->$property)
                     ),
                 )
             );
@@ -132,46 +133,23 @@ class RouteManager
 
     /**
      * @param  Route          $route
+     * @param  string         $property
+     * @param  string         $method
      * @return NodeAbstract[]
      */
-    protected function prepareControllerAsserts(Route $route)
+    protected function prepareControllerComplex(Route $route, $property, $method)
     {
         $nodes = array();
-        foreach ($route->asserts as $variable => $regexp) {
+        foreach ($route->$property as $key => $element) {
             $nodes[] = new MethodCall(
                 new Variable('controller'),
-                'assert',
+                $method,
                 array(
                     new Arg(
-                        new String($variable)
+                        new String($key)
                     ),
                     new Arg(
-                        new String($regexp)
-                    )
-                )
-            );
-        }
-
-        return $nodes;
-    }
-
-    /**
-     * @param  Route          $route
-     * @return NodeAbstract[]
-     */
-    protected function prepareControllerValues(Route $route)
-    {
-        $nodes = array();
-        foreach ($route->values as $variable => $default) {
-            $nodes[] = new MethodCall(
-                new Variable('controller'),
-                'value',
-                array(
-                    new Arg(
-                        new String($variable)
-                    ),
-                    new Arg(
-                        new String($default)
+                        new String($element)
                     )
                 )
             );
@@ -273,54 +251,16 @@ class RouteManager
 
     /**
      * @param  Route          $route
+     * @param  string         $property
      * @return NodeAbstract[]
      */
-    protected function prepareControllerMethod(Route $route)
+    protected function prepareControllerBoolean(Route $route, $property)
     {
         $nodes = array();
-        if (!is_null($route->method)) {
+        if ($route->$property) {
             $nodes[] = new MethodCall(
                 new Variable('controller'),
-                'method',
-                array(
-                    new Arg(
-                        new String($route->method)
-                    ),
-                )
-            );
-        }
-
-        return $nodes;
-    }
-
-    /**
-     * @param  Route          $route
-     * @return NodeAbstract[]
-     */
-    protected function prepareControllerIsRequiredHttp(Route $route)
-    {
-        $nodes = array();
-        if ($route->requireHttp) {
-            $nodes[] = new MethodCall(
-                new Variable('controller'),
-                'requireHttp'
-            );
-        }
-
-        return $nodes;
-    }
-
-    /**
-     * @param  Route          $route
-     * @return NodeAbstract[]
-     */
-    protected function prepareControllerIsRequiredHttps(Route $route)
-    {
-        $nodes = array();
-        if ($route->requireHttps) {
-            $nodes[] = new MethodCall(
-                new Variable('controller'),
-                'requireHttps'
+                $property
             );
         }
 
