@@ -10,6 +10,7 @@ use PhpParser\Node\Expr\Closure;
 use PhpParser\Node\Expr\ClosureUse;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Expr;
 use PhpParser\Node\Name;
 use PhpParser\Node\Param;
 use PhpParser\Node\Scalar\String;
@@ -169,33 +170,6 @@ class RouteManager
         foreach ($route->converters as $converter) {
             /** @var Convert $converter */
 
-            $callback = $converter->callback->value;
-
-            $matches = array();
-
-            // controller as service callback
-            if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
-
-                if ($matches[1] == '__self') {
-                    $matches[1] = $classInfo->getServiceId();
-                }
-
-                $callbackNode = $this->prepareControllerConverterClosure(
-                    $converter->value,
-                    $matches[1],
-                    $matches[2]
-                );
-            } elseif (preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
-
-                if ($matches[1] == '__self') {
-                    $matches[1] = $classInfo->getName();
-                }
-
-                $callbackNode = new String($matches[1] . '::' . $matches[2]);
-            } else {
-                $callbackNode = new String($callback);
-            }
-
             $nodes[] = new MethodCall(
                 new Variable('controller'),
                 'convert',
@@ -204,7 +178,12 @@ class RouteManager
                         new String($converter->value)
                     ),
                     new Arg(
-                        $callbackNode
+                        $this->prepareCallbackNode(
+                            $classInfo,
+                            $converter->callback->value,
+                            'prepareControllerConverterClosure',
+                            $converter->value
+                        )
                     )
                 )
             );
@@ -214,14 +193,47 @@ class RouteManager
     }
 
     /**
-     * @param  string  $variable
+     * @param  ClassInfo   $classInfo
+     * @param  string      $callback
+     * @param  string      $callbackMethod
+     * @param  string|null $value
+     * @return Expr
+     */
+    protected function prepareCallbackNode(ClassInfo $classInfo, $callback, $callbackMethod, $value = null)
+    {
+        // controller as service callback
+        if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
+
+            if ($matches[1] == '__self') {
+                $matches[1] = $classInfo->getServiceId();
+            }
+
+            return  $this->$callbackMethod(
+                $matches[1],
+                $matches[2],
+                $value
+            );
+        } elseif (preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
+
+            if ($matches[1] == '__self') {
+                $matches[1] = $classInfo->getName();
+            }
+
+            return new String($matches[1] . '::' . $matches[2]);
+        } else {
+            return new String($callback);
+        }
+    }
+
+    /**
      * @param  string  $serviceId
      * @param  string  $methodName
+     * @param  string  $variable
      * @return Closure
      */
-    protected function prepareControllerConverterClosure($variable, $serviceId, $methodName)
+    protected function prepareControllerConverterClosure($serviceId, $methodName, $variable)
     {
-        return  new Closure(
+        return new Closure(
             array(
                 'params' => array(
                     new Variable($variable)
@@ -288,6 +300,7 @@ class RouteManager
     }
 
     /**
+     * @param  ClassInfo          $classInfo
      * @param  CallbackAnnotation $annotation
      * @param  string             $method
      * @param  string             $callbackMethod
@@ -297,38 +310,16 @@ class RouteManager
     {
         /** @var CallbackAnnotation $annotation */
 
-        $matches = array();
-
-        $callback = $annotation->value;
-
-        // controller as service callback
-        if (preg_match('/^([^:]+):([^:]+)$/', $callback, $matches) === 1) {
-
-            if ($matches[1] == '__self') {
-                $matches[1] = $classInfo->getServiceId();
-            }
-
-            $callbackNode = $this->$callbackMethod(
-                $matches[1],
-                $matches[2]
-            );
-        } elseif (preg_match('/^([^:]+)::([^:]+)$/', $callback, $matches) === 1) {
-
-            if ($matches[1] == '__self') {
-                $matches[1] = $classInfo->getName();
-            }
-
-            $callbackNode = new String($matches[1] . '::' . $matches[2]);
-        } else {
-            $callbackNode = new String($callback);
-        }
-
         return new MethodCall(
             new Variable('controller'),
             $method,
             array(
                 new Arg(
-                    $callbackNode
+                    $this->prepareCallbackNode(
+                        $classInfo,
+                        $annotation->value,
+                        $callbackMethod
+                    )
                 )
             )
         );
@@ -341,7 +332,7 @@ class RouteManager
      */
     protected function prepareControllerBeforeClosure($serviceId, $methodName)
     {
-        return  new Closure(
+        return new Closure(
             array(
                 'params' => array(
                     new Param(
@@ -400,7 +391,7 @@ class RouteManager
      */
     protected function prepareControllerAfterClosure($serviceId, $methodName)
     {
-        return  new Closure(
+        return new Closure(
             array(
                 'params' => array(
                     new Param(
