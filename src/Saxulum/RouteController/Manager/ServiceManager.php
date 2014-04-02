@@ -56,7 +56,7 @@ class ServiceManager
             new Variable('controller'),
             new New_(
                 new Name($classInfo->getName()),
-                $this->prepareConstructArguments($di)
+                $this->prepareArguments($di)
             )
         );
     }
@@ -65,21 +65,21 @@ class ServiceManager
      * @param  DI    $di
      * @return Arg[]
      */
-    protected function prepareConstructArguments(DI $di = null)
+    protected function prepareArguments(DI $di = null)
     {
         if (is_null($di)) {
             return array();
         }
 
-        $constructArguments = array();
+        $arguments = array();
 
         if ($di->injectContainer) {
-            $constructArguments[] = new Arg(
+            $arguments[] = new Arg(
                 new Variable('app')
             );
         } else {
             foreach ($di->serviceIds as $serviceId) {
-                $constructArguments[] = new Arg(
+                $arguments[] = new Arg(
                     new ArrayDimFetch(
                         new Variable('app'),
                         new String($serviceId)
@@ -88,7 +88,7 @@ class ServiceManager
             }
         }
 
-        return $constructArguments;
+        return $arguments;
     }
 
     /**
@@ -110,34 +110,8 @@ class ServiceManager
         return new MethodCall(
             new Variable('controller'),
             $methodInfo->getName(),
-            $this->prepareMethodArguments($di)
+            $this->prepareArguments($di)
         );
-    }
-
-    /**
-     * @param  DI    $di
-     * @return Arg[]
-     */
-    protected function prepareMethodArguments(DI $di)
-    {
-        $methodArguments = array();
-
-        if ($di->injectContainer) {
-            $methodArguments[] = new Arg(
-                new Variable('app')
-            );
-        } else {
-            foreach ($di->serviceIds as $serviceId) {
-                $methodArguments[] = new Arg(
-                    new ArrayDimFetch(
-                        new Variable('app'),
-                        new String($serviceId)
-                    )
-                );
-            }
-        }
-
-        return $methodArguments;
     }
 
     /**
