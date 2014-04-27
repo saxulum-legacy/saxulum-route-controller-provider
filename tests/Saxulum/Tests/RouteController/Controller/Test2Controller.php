@@ -23,10 +23,14 @@ class Test2Controller
     }
 
     /**
-     * @Route("/url", bind="url")
+     * @Route("/url/{route}", bind="url", values={"route"=null})
      */
-    public function urlAction()
+    public function urlAction($route)
     {
-        return $this->urlGenerator->generate('hello_name', array('name' => 'urs'), true);
+        if (null ===  $route) {
+            $route = 'hello_name';
+        }
+
+        return $this->urlGenerator->generate($route, array('name' => 'urs'), true);
     }
 }

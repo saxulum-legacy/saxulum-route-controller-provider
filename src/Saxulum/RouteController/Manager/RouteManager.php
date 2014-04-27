@@ -12,6 +12,8 @@ use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Name;
 use PhpParser\Node\Param;
+use PhpParser\Node\Scalar\DNumber;
+use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String;
 use PhpParser\Node\Stmt\Return_;
 use PhpParser\NodeAbstract;
@@ -84,10 +86,10 @@ class RouteManager
                 'match',
                 array(
                     new Arg(
-                        new String($route->value)
+                        $this->prepareScalarArg($route->value)
                     ),
                     new Arg(
-                        new String(
+                        $this->prepareScalarArg(
                             $classInfo->getServiceId() . ':' . $methodInfo->getName()
                         )
                     )
@@ -110,7 +112,7 @@ class RouteManager
                 $property,
                 array(
                     new Arg(
-                        new String($route->$property)
+                        $this->prepareScalarArg($route->$property)
                     ),
                 )
             );
@@ -134,10 +136,10 @@ class RouteManager
                 $method,
                 array(
                     new Arg(
-                        new String($key)
+                        $this->prepareScalarArg($key)
                     ),
                     new Arg(
-                        new String($element)
+                        $this->prepareScalarArg($element)
                     )
                 )
             );
@@ -162,7 +164,7 @@ class RouteManager
                 'convert',
                 array(
                     new Arg(
-                        new String($converter->value)
+                        $this->prepareScalarArg($converter->value)
                     ),
                     new Arg(
                         $this->prepareCallbackNode(
@@ -439,12 +441,33 @@ class RouteManager
             'mount',
             array(
                 new Arg(
-                    new String($mount)
+                    $this->prepareScalarArg($mount)
                 ),
                 new Arg(
                     new Variable('controllers')
                 )
             )
         );
+    }
+
+    /**
+     * @param $value
+     * @return Expr
+     */
+    protected function prepareScalarArg($value)
+    {
+        if ($value === null) {
+            return new Expr\ConstFetch(new Name('null'));
+        }
+
+        if (is_float($value)) {
+            return new DNumber($value);
+        }
+
+        if (is_int($value)) {
+            return new LNumber($value);
+        }
+
+        return new String($value);
     }
 }
