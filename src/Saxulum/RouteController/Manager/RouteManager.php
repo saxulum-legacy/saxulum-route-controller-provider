@@ -14,7 +14,7 @@ use PhpParser\Node\Name;
 use PhpParser\Node\Param;
 use PhpParser\Node\Scalar\DNumber;
 use PhpParser\Node\Scalar\LNumber;
-use PhpParser\Node\Scalar\String;
+use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Return_;
 use PhpParser\NodeAbstract;
 use Saxulum\RouteController\Annotation\Callback as CallbackAnnotation;
@@ -66,7 +66,7 @@ class RouteManager
             new Variable('controllers'),
             new ArrayDimFetch(
                 new Variable('app'),
-                new String('controllers_factory')
+                new String_('controllers_factory')
             )
         );
     }
@@ -208,9 +208,9 @@ class RouteManager
                 $matches[1] = $classInfo->getName();
             }
 
-            return new String($matches[1] . '::' . $matches[2]);
+            return new String_($matches[1] . '::' . $matches[2]);
         } else {
-            return new String($callback);
+            return new String_($callback);
         }
     }
 
@@ -235,7 +235,7 @@ class RouteManager
                         new MethodCall(
                             new ArrayDimFetch(
                                 new Variable('app'),
-                                new String($serviceId)
+                                new String_($serviceId)
                             ),
                             $methodName,
                             array(
@@ -338,7 +338,7 @@ class RouteManager
                         new MethodCall(
                             new ArrayDimFetch(
                                 new Variable('app'),
-                                new String($serviceId)
+                                new String_($serviceId)
                             ),
                             $methodName,
                             array(
@@ -402,7 +402,7 @@ class RouteManager
                         new MethodCall(
                             new ArrayDimFetch(
                                 new Variable('app'),
-                                new String($serviceId)
+                                new String_($serviceId)
                             ),
                             $methodName,
                             array(
@@ -468,6 +468,6 @@ class RouteManager
             return new LNumber($value);
         }
 
-        return new String($value);
+        return new String_($value);
     }
 }

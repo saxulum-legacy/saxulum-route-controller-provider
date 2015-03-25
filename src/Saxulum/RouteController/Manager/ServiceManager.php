@@ -11,7 +11,7 @@ use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Name;
-use PhpParser\Node\Scalar\String;
+use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Return_;
 use Saxulum\RouteController\Annotation\DI;
 use Saxulum\AnnotationManager\Helper\ClassInfo;
@@ -82,7 +82,7 @@ class ServiceManager
                 $arguments[] = new Arg(
                     new ArrayDimFetch(
                         new Variable('app'),
-                        new String($serviceId)
+                        new String_($serviceId)
                     )
                 );
             }
@@ -134,7 +134,7 @@ class ServiceManager
         return new Assign(
             new ArrayDimFetch(
                 new Variable('app'),
-                new String($classInfo->getServiceId())
+                new String_($classInfo->getServiceId())
             ),
             new MethodCall(
                 new Variable('app'),
