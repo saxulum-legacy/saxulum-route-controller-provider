@@ -10,7 +10,7 @@
         }
     ],
     "require": {
-        "php": ">=5.3.3",
+        "php": ">=5.3.3,<8.0",
         "doctrine/annotations": "~1.1",
         "nikic/php-parser": "~1.2,>=1.2.1",
         "saxulum/saxulum-annotation-manager": "~1.1,>=1.1.1",
