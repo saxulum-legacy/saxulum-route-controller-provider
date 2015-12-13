@@ -45,7 +45,7 @@ class RouteControllerProviderTest extends WebTestCase
         $app->register(new ServiceControllerServiceProvider());
         $app->register(new UrlGeneratorServiceProvider());
         $app->register(new RouteControllerProvider(), array(
-            'route_controller_cache' => __DIR__ . '/../../../../../cache'
+            'route_controller_cache' => __DIR__ . '/../../cache'
         ));
 
         $app['route_controller_paths'] = $app->share($app->extend('route_controller_paths', function ($paths) {

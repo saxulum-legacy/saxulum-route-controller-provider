@@ -5,6 +5,7 @@ namespace Saxulum\Tests\RouteController\Controller\SubDir;
 use Saxulum\RouteController\Annotation\DI;
 use Saxulum\RouteController\Annotation\Route;
 use Symfony\Component\Routing\Generator\UrlGenerator;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class Test3Controller
 {
@@ -27,6 +28,6 @@ class Test3Controller
      */
     public function dummyAction()
     {
-        return $this->urlGenerator->generate('dummy', array(), true);
+        return $this->urlGenerator->generate('dummy', array(), UrlGeneratorInterface::ABSOLUTE_URL);
     }
 }

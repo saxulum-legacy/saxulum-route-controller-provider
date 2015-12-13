@@ -5,6 +5,7 @@ namespace Saxulum\Tests\RouteController\Controller;
 use Saxulum\RouteController\Annotation\DI;
 use Saxulum\RouteController\Annotation\Route;
 use Symfony\Component\Routing\Generator\UrlGenerator;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * @Route("/{_locale}")
@@ -31,6 +32,6 @@ class Test2Controller
             $route = 'hello_name';
         }
 
-        return $this->urlGenerator->generate($route, array('name' => 'urs'), true);
+        return $this->urlGenerator->generate($route, array('name' => 'urs'), UrlGeneratorInterface::ABSOLUTE_URL);
     }
 }

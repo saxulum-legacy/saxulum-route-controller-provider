@@ -12,7 +12,7 @@
         >
     <testsuites>
         <testsuite name="Saxulum Route/Controller Provider">
-            <directory>./tests/Saxulum/</directory>
+            <directory>./tests</directory>
         </testsuite>
     </testsuites>
     <filter>
