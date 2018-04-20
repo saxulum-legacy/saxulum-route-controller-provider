@@ -23,5 +23,6 @@
     },
     "autoload": {
         "psr-4": { "Saxulum\\RouteController\\": "src/" }
-    }
+    },
+    "abandoned": true
 }
